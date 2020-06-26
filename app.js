@@ -432,7 +432,7 @@ const fakeResp1 = {
 
 
 
-const fetchToken = async () =>  {
+const fetchTokenFn = async () =>  {
     try {
         const res = await axios.get(HOST_URL, { raxConfig: RAX_CONFIG });
         console.error('ttt 1', res.data);
@@ -474,7 +474,7 @@ const fetchUsers = async (page, token) =>  {
     }
 };
 
-const fetchUsersPage = (token) => (page) => fetchUsers(page, token);
+const fetchUsersPageFn = (token) => (page) => fetchUsers(page, token);
 
 const calcPageIdsAfterFirstPage = (totalRecordsCount, firstPageRecordsCount) => {
         // console.error('AA  totalRecordsCount :', totalRecordsCount);
@@ -580,32 +580,31 @@ const isEndOfDayReachedBetweenDates = (start, end) =>
  * @param firstPageResponse
  * @param otherPageResponses
  * @param fetchPageFn
- * @param startMoment
- * @param endMoment
+ * @param isStringDatePastFn
  * @returns {{}}
  */
-const fetchMissedPages = async (firstPageResponse, otherPageResponses, fetchPageFn, startMoment, endMoment) => {
+const fetchMissedPages = async (firstPageResponse, otherPageResponses, fetchPageFn, isStringDatePastFn) => {
 
     const { success, page, value: firstPageValue } = firstPageResponse;
     const { total: firstPageTotal = 0, data: firstPageRecords = [] } = firstPageValue;
 
     const isDataChanged = isTotalChanged(firstPageTotal, otherPageResponses);
 
+    // let scannedPages =
+    const indexGuard = {
+        firstPageTotal,
+        recordIds: {},
+        visitorNames: {
 
-    // const indexGuard = {
-    //     fetchedTotal: total,
-    //     startMomentMilliseconds: startMoment.getTime(),
-    //     endMomentMilliseconds: endMoment.getTime(),
-    //     recordIds : [],
-    //     visitorNames: {},
-    //     visitorPages: {
-    //         'visitorName' : {
-    //             start: 1, end: 1,
-    //         }
-    //     },
-    //     visitorRecords: {}
-    // }
-    //
+        },
+        visitorPages: {
+            'visitorName' : {
+                start: 1, end: 1,
+            }
+        },
+        visitorRecords: {}
+    };
+
 
     // const isEndOfDayReached = isEndOfDayReachedBetweenDates(startMoment, endMoment);
 
@@ -638,10 +637,10 @@ const isTotalChanged = (firstPageTotal, pageResponses) => {
  *     }
  *  }
  * @param pageResponses
- * @param startMoment
+ * @param isPastDayFn = () => {}
  * @return {{}}
  */
-const calcVisits = (pageResponses, startMoment) => {
+const calcVisits = (pageResponses, isPastDayFn) => {
     console.log('###################### responses ######################');
     console.log(JSON.stringify(pageResponses));
     console.log('###################### responses ######################');
@@ -652,8 +651,6 @@ const calcVisits = (pageResponses, startMoment) => {
     const isIdUsed = (id) => viewedRecordIds[id] === true;
     const setIdUsed = (id) => viewedRecordIds[id] = true;
 
-    const startMomentUTCStartOfDate = getUTCStartOfDateMilliseconds(startMoment);
-    const isPastDay = (date) => getUTCStartOfDateMilliseconds(date) < startMomentUTCStartOfDate;
 
     pageResponses.filter(({success}) => success)
         .forEach(({ value: { data = [] } = {} } = {}) =>
@@ -665,7 +662,7 @@ const calcVisits = (pageResponses, startMoment) => {
                     // console.log('{ id, name, date: stringDate }', { id, name, stringDate });
                     setIdUsed(id);
                     let date = new Date(Date.parse(stringDate));
-                    if (isWeekDay(date) && isPastDay(date)) {
+                    if (isWeekDay(date) && isPastDayFn(date)) {
 
                         // console.log('setNameVisit(name); [' + id + ']', name);
                         setNameVisit(name);
@@ -692,15 +689,18 @@ const listUsers = async () => {
     try {
 
         console.error('a1');
-        const token = await fetchToken();
+        const token = await fetchTokenFn();
         if (token === false) {
             console.error('Error: Auth request failed');
             return;
         }
 
         let startMoment = new Date();
-        const pageFetcher = fetchUsersPage(token);
-        const firstPageResponse = await pageFetcher(1);
+        const startMomentUTCStartOfDateMilliseconds = getUTCStartOfDateMilliseconds(startMoment);
+        const isPastDayFn = (date) => getUTCStartOfDateMilliseconds(date) < startMomentUTCStartOfDateMilliseconds;
+        const isStringDatePastFn = (date) => startMomentUTCStartOfDateMilliseconds < Date.parse(date);
+        const pageFetcherFn = fetchUsersPageFn(token);
+        const firstPageResponse = await pageFetcherFn(1);
 
         const { success, page, value: firstPageValue } = firstPageResponse;
         if (success === false) {
@@ -736,8 +736,8 @@ const listUsers = async () => {
         // const debugIds = [1, ...unreadPageIds, unreadPageIds.length + 2, unreadPageIds.length + 3, 1, ...unreadPageIds, 1, ...unreadPageIds];
         // console.error('debugIds', debugIds);
 
-        // const unreadPageRequests = [...debugIds].map(async id => await pageFetcher(id));
-        const unreadPageRequests = [...unreadPageIds].map(async id => await pageFetcher(id));
+        // const unreadPageRequests = [...debugIds].map(async id => await pageFetcherFn(id));
+        const unreadPageRequests = [...unreadPageIds].map(async id => await pageFetcherFn(id));
         const unreadPagesResponses = await Promise.all(unreadPageRequests);
         // const unreadPagesResponses = await Promise.all(unreadPageRequests);
 
@@ -765,15 +765,14 @@ const listUsers = async () => {
             missedPagesResponses = await fetchMissedPages(
                 firstPageResponse,
                 unreadPagesResponses,
-                pageFetcher,
-                startMoment,
-                endMoment
+                pageFetcherFn,
+                isStringDatePastFn
             );
         }
 
         const visits = calcVisits(
             [firstPageResponse, ...unreadPagesResponses, ...missedPagesResponses],
-            startMoment);
+            isPastDayFn);
 
         console.log('visits', visits);
         console.log(JSON.stringify(visits));
