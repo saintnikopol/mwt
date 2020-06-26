@@ -643,7 +643,7 @@ const isTotalChanged = (firstPageTotal, pageResponses) => {
  */
 const calcVisits = (pageResponses, startMoment) => {
     console.log('###################### responses ######################');
-    console.log(JSON.stringify(pageResponses))
+    console.log(JSON.stringify(pageResponses));
     console.log('###################### responses ######################');
     let nameVisits = {};
     const setNameVisit = (name) => nameVisits[name] = nameVisits[name] === undefined ? 1: nameVisits[name] + 1;
@@ -657,11 +657,17 @@ const calcVisits = (pageResponses, startMoment) => {
 
     pageResponses.filter(({success}) => success)
         .forEach(({ value: { data = [] } = {} } = {}) =>
-            data.filter(({ id }) => !isIdUsed(id))
+            data.filter(({ id }) => {
+                // console.log('id === ', id);
+                return !isIdUsed(id)
+            })
                 .forEach(({ id, name, date: stringDate }) => {
+                    // console.log('{ id, name, date: stringDate }', { id, name, stringDate });
                     setIdUsed(id);
                     let date = new Date(Date.parse(stringDate));
                     if (isWeekDay(date) && isPastDay(date)) {
+
+                        // console.log('setNameVisit(name); [' + id + ']', name);
                         setNameVisit(name);
                     }
                 })
