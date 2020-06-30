@@ -474,7 +474,10 @@ const fetchUsers = async (page, token) =>  {
     }
 };
 
-const fetchUsersPageFn = (token) => (page) => fetchUsers(page, token);
+const fetchUsersPageFnFactory = token => page => fetchUsers(page, token);
+
+const pageIdListFetchFnFactory = pageFetcherFn => async unreadPageIds =>
+    await Promise.all([...unreadPageIds].map(async id => await pageFetcherFn(id)));
 
 const calcPageIdsAfterFirstPage = (totalRecordsCount, firstPageRecordsCount) => {
         // console.error('AA  totalRecordsCount :', totalRecordsCount);
@@ -501,6 +504,19 @@ const calcPageIdsAfterFirstPage = (totalRecordsCount, firstPageRecordsCount) => 
     };
 };
 
+const calcTailPageIds = (maxKnownTotal, firstPageTotal, recordsPerPage) => {
+    const lastFetchedPageId = Math.ceil(firstPageTotal / recordsPerPage);
+    const maxKnownTotalPageId = Math.ceil(maxKnownTotal / recordsPerPage);
+
+    const isLastPageFullyFetched = lastFetchedPageId * recordsPerPage === firstPageTotal;
+
+    const firstUnfetchedPageId = isLastPageFullyFetched ? lastFetchedPageId + 1 : lastFetchedPageId;
+    let tailPageIds = [];
+    for (let talePageId = firstUnfetchedPageId; firstUnfetchedPageId <= maxKnownTotalPageId; talePageId++) {
+        tailPageIds.push(tailPageIds)
+    }
+    return tailPageIds;
+}
 
 const isWeekDay = (date) => {
     const indexOfWeek = date.getDay();
@@ -549,8 +565,188 @@ const getUTCStartOfDateMilliseconds = date => {
 const isEndOfDayReachedBetweenDates = (start, end) =>
     getUTCStartOfDateMilliseconds(start) !== getUTCStartOfDateMilliseconds(end);
 
+const isTailCaughtFn = (tailPagesResponses, recordsPerPage) => {
+    if (tailPagesResponses.length === 0) {
+        return true;
+    }
+    const lastPageResponse = tailPagesResponses[tailPagesResponses.length - 1];
+    const { success, page: pageId, value: {total = 0, data = []} = {} } = lastPageResponse;
+    // page is cut, so end is found
+    if (data.length < recordsPerPage) {
+        return true;
+    }
+
+    // we fetched all records on last page
+    if (pageId * recordsPerPage === total) {
+        return true;
+    }
+
+    // if (lastName)
+    return false;
+}
+
+const scanPageResponse = (mutableRecordsIndex, pageIndex, pageResponse, isStringDatePastFn) => {
+
+    const {
+        /*success,*/
+        page: pageId,
+        value: {
+            total: pageTotalRecordsCount,
+            data = [],
+        },
+    } = pageResponse;
+
+    const { trueRecordsCount, recordsPerPage } = mutableRecordsIndex;
+    let trueRecordsIds = {};
+    let insertedRecordsIds = {};
+    let trueRecordsIdList = [];
+    let allRecordsIdList = [];
+    let trueUniqRecordsOnPageCount = 0;
+    let insertedUniqRecordsOnPageCount = 0;
+    data.forEach((record, recordIndex) => {
+        const { id, /*name = '', */date: stringDate } = record;
+        const isInsertedRecord = !isStringDatePastFn(stringDate);
+
+        if (isInsertedRecord) {
+            insertedRecordsIds[id] = true;
+        } else {
+            trueRecordsIds[id] = true;
+            trueRecordsIdList.push(id);
+        }
+
+        if (mutableRecordsIndex.records[id] === undefined) {
+            mutableRecordsIndex.records[id] = {
+                pageIndexes: {
+                    [pageIndex]: recordIndex,
+                },
+                isInsertedRecord,
+                /*name,*/
+                /*stringDate,*/
+            }
+            if (isInsertedRecord) {
+                insertedUniqRecordsOnPageCount++;
+            } else {
+                trueUniqRecordsOnPageCount++;
+            }
+        } else {
+            mutableRecordsIndex.records[id].pageIndexes[pageIndex] = recordIndex;
+            mutableRecordsIndex.overlapRecordIds[id] = true;
+        }
+        allRecordsIdList.push(id);
+    });
+
+
+
+    const currentPageRecordCount = data.length;
+    const trueRecordsOnPageCount = trueRecordsIdList.length;
+
+    const isCutTailPage = recordsPerPage > currentPageRecordCount;
+    const isFullTailPage = recordsPerPage * pageId === pageTotalRecordsCount;
+    const isTailPage = isCutTailPage || isFullTailPage;
+
+    const isCanBeTailPage = pageId * recordsPerPage >= pageTotalRecordsCount;
+    if (isCutTailPage && !isCanBeTailPage) {
+        console.error('Data error: tail page is not last possible page.');
+    }
+
+    const insertedRecordsOnPageCount = allRecordsIdList.length - trueRecordsIdList.length;
+
+
+    // const maxRecordsOnRightWithInsertedCount = (isCutTailPage || isFullTailPage) ? 0 :
+    //     pageTotalRecordsCount
+
+    // 150
+
+    ////
+    // 1 0..14
+    // 2 15..29
+    // 3 30..44
+    // 4 45..59
+    // 5 60..74
+    // 6 75..89
+    // 7 90..104
+    // 8 105..119
+    // 9 120..134
+    // 10 135..149
+    // 11 150..165
+
+    // pageId = 10, shiftWIRC = 25
+    // 0       trueRecordsOnPageCount     trueRecordsCount // pageTotalRecordsCount
+    // minIdx
+    //         EmptyLeftIdx
+    //             TruRecCount
+    //                      allRight
+    //                        --inserted
+    //                                     MaxTrueIndex
+    //                                      /MaxIndex
+    // 0       135    13     149-2          [149/176]      150 // 177 |175   // 27 // 25
+    // 0       135    13     149-2          [149/166]      150 // 167 |165   // 17 // 15
+    // 0       135    13+2   149            [149/156]      150 // 157 |155   // 7  // 5
+
+    // 0       135    13     147            [149/176]      150 // 177 |175   // 27 // 25
+    // 0       135    13     147            [149/166]      150 // 167 |165   // 17 // 15
+    // 0       135    13     147            [149/156]      150 // 157 |155   // 7  // 5
+
+
+    // maxPossibleRecordsOnRight = pageTotalRecordsCount - ((pageId - 1) * recordsPerPage +  currentPageRecordCount);
+
+    /// 10   // 177 : 10 I ..x.j.x..J            13, 12    + 27 / --2 | 25
+    /// 10   // 167 : 10 I ..x.j.x..J            13, 12    + 27 / --2 | 17
+    /// 10   // 157 : 10 I ..x.j.x..J            13, 12    + 27 / --2 | 7
+
+    const shiftWithInserted = pageTotalRecordsCount - trueRecordsCount;
+    const shiftWithoutInserted = shiftWithInserted - insertedRecordsOnPageCount;
+
+    const fetchedRecordsOnLeftCount = (pageId - 1) * recordsPerPage;
+    const fetchedRecordsOnRightCount =
+        pageTotalRecordsCount - ((pageId - 1) * recordsPerPage +  currentPageRecordCount);
+
+    const minTrueRecordsOnRightCount = Math.max(0, fetchedRecordsOnRightCount - shiftWithoutInserted);
+    const minPossibleShiftWithoutInsertedOnRightCount = Math.max(fetchedRecordsOnRightCount, shiftWithoutInserted);
+
+    const rightMaxTrueIndex = Math.max(0, trueRecordsCount - minTrueRecordsOnRightCount - 1);
+    const rightMinTrueIndex = Math.max(
+        0,
+        fetchedRecordsOnLeftCount + trueRecordsOnPageCount - minPossibleShiftWithoutInsertedOnRightCount - 1
+    );
+
+    const rightMinMaxDistance = rightMaxTrueIndex - rightMinTrueIndex;
+    const leftMaxTrueIndex = fetchedRecordsOnLeftCount;
+    const leftMinTrueIndex = Math.max(0, leftMaxTrueIndex - rightMinMaxDistance);
+
+    let pageScan = {
+        pageIndex,
+        pageId,
+        pageTotalRecordsCount,
+        isCutTailPage,
+        isFullTailPage,
+        isTailPage,
+        shiftWithInserted,
+        shiftWithoutInserted,
+        trueRecordsIds,
+        trueRecordsIdList,
+        insertedRecordsIds,
+        allRecordsIdList,
+
+        trueRecordsOnPageCount,
+        trueUniqRecordsOnPageCount,
+        insertedRecordsOnPageCount,
+        insertedUniqRecordsOnPageCount,
+
+        leftMinTrueIndex,
+        leftMaxTrueIndex,
+        rightMinTrueIndex,
+        rightMaxTrueIndex,
+    }
+    return pageScan;
+}
+
 /**
- * This function finds all uniq original records
+ * This function finds all uniq original records, and try's to fetch all missed records
+ *
+ * If records are inserted to fast than we have can't reliably fetch all records for past period
+ * PS: too fast means more than 15+ records per each new response for page request.
+ * (15 is page size for tested period, this number also could be changed)
  *
  * @NOTE: 1: ignore daybreak, all calculations checks data for date of first request to server.
  * @NOTE: 2: responses from server has bug
@@ -569,56 +765,146 @@ const isEndOfDayReachedBetweenDates = (start, end) =>
  *  this could leave to missed records in the beginning of some pages , if previously some record was inserted.
  *  This situation caused by NameSorting + new records.
  *
+ * @NOTE: 3.1: we have an "id" field, it's uniq but we have no guarantee that it's autoincrement
+ * so after records with id's 23, 24, 25, 26 we can receive any other id
+ * even 1, if it was not received before
+ * So we can't rely on "id" autoincrement to observe missed records
+ *
  * 0) Fetch tailing pages
  * 1) Find overlaps between pages
  * 2) skip "today inserted records"
  * 3) count "true original records"
  * 4) if originalTotal < sum of all "true original records"
- *      5) fetch page without overlap , they can contain missed "original records"
+ *      5) fetch page without overlap, they "can" contain missed "original records"
  *      6) repeat 5) until count of found "true original records" is equal to "originalTotal"
  *
  * @param firstPageResponse
- * @param otherPageResponses
- * @param fetchPageFn
+ * @param otherPagesResponses
+ * @param pageIdListFetchFn
  * @param isStringDatePastFn
+ * @param recordsPerPage
  * @returns {{}}
  */
-const fetchMissedPages = async (firstPageResponse, otherPageResponses, fetchPageFn, isStringDatePastFn) => {
+const fetchMissedRecords = async (
+    firstPageResponse,
+    otherPagesResponses,
+    pageIdListFetchFn,
+    isStringDatePastFn,
+    recordsPerPage,
+) => {
 
-    const { success, page, value: firstPageValue } = firstPageResponse;
-    const { total: firstPageTotal = 0, data: firstPageRecords = [] } = firstPageValue;
+    // trueRecords === records we should receive for fetching all pages if no new records would be inserted
+    // trueRecordsCount === firstPageResponseTotal
+    // So trueRecords === records with date < momentOfFirstPageFetch.
+    // it's verified by function isStringDatePastFn
+    const { /*success, page,*/ value: firstPageValue } = firstPageResponse;
+    const { total: firstPageTotal = 0/*, data: firstPageRecords = []*/ } = firstPageValue;
+    const trueRecordsCount = firstPageTotal;
+    const isDataChanged = isTotalChanged(trueRecordsCount, otherPagesResponses);
 
-    const isDataChanged = isTotalChanged(firstPageTotal, otherPageResponses);
+    if (isDataChanged) {
+        const maxKnownTotal = getMaxTotal(otherPagesResponses);
+        const tailPagesIds = calcTailPageIds(maxKnownTotal, trueRecordsCount, recordsPerPage);
+        const tailPagesResponses = pageIdListFetchFn(tailPagesIds);
 
-    // let scannedPages =
-    const indexGuard = {
-        firstPageTotal,
-        recordIds: {},
-        visitorNames: {
+        const isTailCaught = isTailCaughtFn(tailPagesResponses, recordsPerPage);
 
-        },
-        visitorPages: {
-            'visitorName' : {
-                start: 1, end: 1,
-            }
-        },
-        visitorRecords: {}
-    };
+        let pagesResponses = [firstPageResponse, ...otherPagesResponses, ...tailPagesResponses];
+
+        /**
+         * Global record index.
+         * @Note: pageIndex !== pageId
+         *
+         * @type {{
+         *     [recordId]: {
+         *         pageIndexes: {
+         *             [pageIndex]: true
+         *         },
+         *         isInsertedRecord: @boolean
+         *     }
+         * }}
+         */
+        let mutableRecordsIndex = {
+            trueRecordsCount,
+            trueRecordsFoundCount: 0,
+            // maxKnownTotalRecordCount,
+            isTailCaught,
+            recordsPerPage,
+            pageOverlap: {},
+            records: {},
+            overlapRecordIds: {},
+        };
+
+        /**
+         *
+         *  [
+         *    {
+         *        pageIndex,                       // @number
+         *        pageId,                          // id
+         *        pageTotalRecordsCount,           // @number
+         *        isCutTailPage,                   // @boolean
+         *        isFullTailPage,                  // @boolean
+         *        isTailPage,                      // @boolean
+         *
+         *        shiftWithInserted,               // @number
+         *        shiftWithoutInserted,            // @number
+         *
+         *        trueRecordsIds,                  // {[id]:true, ...}
+         *        trueRecordsIdList,               //  // [id]
+         *        insertedRecordsIds,              // {[id]:true, ...}
+         *        allRecordsIdList,                // [id, ...]
+         *        trueRecordsOnPageCount,          // @number
+         *        trueUniqRecordsOnPageCount,      // @number
+         *        insertedRecordsOnPageCount,      // @number
+         *        insertedUniqRecordsOnPageCount   // @number
+         *
+         *        leftMinTrueIndex,                // @number
+         *        leftMaxTrueIndex,                // @number
+         *        rightMinTrueIndex,               // @number
+         *        rightMaxTrueIndex,               // @number
+         *    },
+         *    //...
+         *  ]
+         */
+        let pageScanResults = pagesResponses.map(
+            (pageResponse, pageIndex) =>
+                scanPageResponse(mutableRecordsIndex, pageIndex, pageResponse, isStringDatePastFn)
+        );
+        const trueRecordsFoundCount = pageScanResults.reduce(
+            (acc, { trueUniqRecordsOnPageCount }) => acc + trueUniqRecordsOnPageCount, 
+            0);
+        if (trueRecordsFoundCount > trueRecordsCount) {
+            console.error('DATA BUG DATA BUG DATA BUG')
+        }
+        // If server data is malformed then on re-fetch we can get more "trueOriginal" records 
+        // than correct data count should be 
+        if (trueRecordsFoundCount >= trueRecordsCount) {
+            return pagesResponses;
+        } else {
+            const missedRecordsCount = trueRecordsCount - trueRecordsFoundCount;
+            console.log(`Found [${missedRecordsCount}] missed records. Trying to fetch ...`);
+
+            // scanPageOverlaps(mutableRecordsIndex, pageScanResults)
+        }
+    }
 
 
-    // const isEndOfDayReached = isEndOfDayReachedBetweenDates(startMoment, endMoment);
-
-    // const result = pageResponses.reduce(page => {}, {
-    //     visitorEntryCount: {}
-    // });
-    //
-
-    return [firstPageResponse, ...otherPageResponses];
+    return [firstPageResponse, ...otherPagesResponses];
 };
+function findOverLaps() {
+    
+}
 
 const isTotalChanged = (firstPageTotal, pageResponses) => {
-    return pageResponses.some(page => page.total !== firstPageTotal);
+    return pageResponses.some(({value: { total } = {} }) => total !== firstPageTotal);
 };
+
+const getMaxTotal = pageResponses => {
+    return pageResponses.reduce(
+        (acc, {value: { total } = {} }) =>
+            acc > total ? acc : total,
+        0);
+}
 
 /**
  * {
@@ -699,7 +985,10 @@ const listUsers = async () => {
         const startMomentUTCStartOfDateMilliseconds = getUTCStartOfDateMilliseconds(startMoment);
         const isPastDayFn = (date) => getUTCStartOfDateMilliseconds(date) < startMomentUTCStartOfDateMilliseconds;
         const isStringDatePastFn = (date) => startMomentUTCStartOfDateMilliseconds < Date.parse(date);
-        const pageFetcherFn = fetchUsersPageFn(token);
+        const pageFetcherFn = fetchUsersPageFnFactory(token);
+
+        const pageIdListFetchFn = pageIdListFetchFnFactory(pageFetcherFn);
+
         const firstPageResponse = await pageFetcherFn(1);
 
         const { success, page, value: firstPageValue } = firstPageResponse;
@@ -724,29 +1013,12 @@ const listUsers = async () => {
         
         console.error('unreadPageIds', unreadPageIds);
 
-        // const debugIds = [
-        //     1, 1, 1, 1, 1, 1, 1,
-        //     1, 1, 1, 1, 1, 1, 1,
-        //     1, 1, 1, 1, 1, 1, 1,
-        //     1, 1, 1, 1, 1, 1, 1,
-        //     1, 1, 1, 1, 1, 1, 1,
-        //     1, 1, 1, 1, 1, 1, 1,
-        //     1, 1, 1, 1, 1, 1, 1,
-        // ];
-        // const debugIds = [1, ...unreadPageIds, unreadPageIds.length + 2, unreadPageIds.length + 3, 1, ...unreadPageIds, 1, ...unreadPageIds];
-        // console.error('debugIds', debugIds);
-
-        // const unreadPageRequests = [...debugIds].map(async id => await pageFetcherFn(id));
-        const unreadPageRequests = [...unreadPageIds].map(async id => await pageFetcherFn(id));
-        const unreadPagesResponses = await Promise.all(unreadPageRequests);
-        // const unreadPagesResponses = await Promise.all(unreadPageRequests);
+        const unreadPagesResponses = await pageIdListFetchFn(unreadPageIds);
 
         console.error('firstPageResponse a1 JSON STRINGIFY', JSON.stringify(firstPageResponse) );
         console.error('firstPageResponse a1', (firstPageResponse) );
         console.error('unreadPagesResponses a1 JSON STRINGIFY', JSON.stringify(unreadPagesResponses) );
         console.error('unreadPagesResponses a1', (unreadPagesResponses) );
-
-
 
         let endMoment = new Date();
 
@@ -759,45 +1031,24 @@ const listUsers = async () => {
 
         // let finalDataSet = [firstPageResponse, ...unreadPagesResponses];
 
-        let missedPagesResponses = [];
+        let pagesWithMissedRecordsResponses = [];
         if (!isDataChanged) {
             // fetch missed records if any
-            missedPagesResponses = await fetchMissedPages(
+            pagesWithMissedRecordsResponses = await fetchMissedRecords(
                 firstPageResponse,
                 unreadPagesResponses,
-                pageFetcherFn,
+                pageIdListFetchFn,
                 isStringDatePastFn
             );
         }
 
         const visits = calcVisits(
-            [firstPageResponse, ...unreadPagesResponses, ...missedPagesResponses],
+            [firstPageResponse, ...unreadPagesResponses, ...pagesWithMissedRecordsResponses],
             isPastDayFn);
 
         console.log('visits', visits);
         console.log(JSON.stringify(visits));
 
-        // const debugResponse = {
-        //     success: true,
-        //     page: 1,
-        //     value: {
-        //         total: total,
-        //         data: firstPageRecords.map(row =>
-        //             Object.assign({}, row, {id: row.id + 1000}))
-        //     }
-        // };
-
-        // const visitsDebug = calcVisits(
-        //     [firstPageResponse, debugResponse, ...unreadPagesResponses, ...missedPagesResponses],
-        //     // [firstPageResponse, ...unreadPagesResponses, ...missedPagesResponses],
-        //     startMoment);
-        //
-        // console.log('visitsDebug', visitsDebug);
-        // console.log(JSON.stringify(visitsDebug));
-
-
-        // { "id": 88, "name": "Visitor #88", "date": "2020-06-18T19:18:47+00:00" }
-        // { "id": 158, "date": "2020-06-25T18:45:37.948Z", "name": "Visitor #89" }
     } catch (err) {
     
         console.error('err', err);
