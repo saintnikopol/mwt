@@ -50,3 +50,22 @@ Overlap
 
 /// 180 : 2 : x , b, x , ..B         13,13 : + 30 / --2  [28]
 
+
+
+let mutableRecordsIndex = {
+    records: {
+        1 : {
+            pageIndexes: {
+                1: 3,
+                2: 0,
+                10: 14,
+            }
+        },
+        47 : {
+            pageIndexes: {
+                4: 13,
+                5: 2,
+            }
+        }
+    }
+}

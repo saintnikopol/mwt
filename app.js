@@ -585,6 +585,39 @@ const isTailCaughtFn = (tailPagesResponses, recordsPerPage) => {
     return false;
 }
 
+/**
+ * Analyze Page data and set possible boundaries
+ *
+ * @param pageId
+ * @param recordsPerPage
+ * @param pageTotalRecordsCount
+ * @param currentPageRecordCount
+ * @param shiftWithoutInserted
+ * @param trueRecordsCount
+ * @param trueRecordsOnPageCount
+ * @returns {{rightMinTrueIndex: number, leftMaxTrueIndex: number, rightMaxTrueIndex: number, leftMinTrueIndex: number}}
+ */
+function calcPageBoundaries(pageId, recordsPerPage, pageTotalRecordsCount, currentPageRecordCount, shiftWithoutInserted,
+                            trueRecordsCount, trueRecordsOnPageCount) {
+    const fetchedRecordsOnLeftCount = (pageId - 1) * recordsPerPage;
+    const fetchedRecordsOnRightCount =
+        pageTotalRecordsCount - ((pageId - 1) * recordsPerPage + currentPageRecordCount);
+
+    const minTrueRecordsOnRightCount = Math.max(0, fetchedRecordsOnRightCount - shiftWithoutInserted);
+    const minPossibleShiftWithoutInsertedOnRightCount = Math.min(fetchedRecordsOnRightCount, shiftWithoutInserted);
+
+    const rightMaxTrueIndex = Math.max(0, trueRecordsCount - minTrueRecordsOnRightCount - 1);
+    const rightMinTrueIndex = Math.max(
+        0,
+        fetchedRecordsOnLeftCount + trueRecordsOnPageCount - minPossibleShiftWithoutInsertedOnRightCount - 1
+    );
+
+    const rightMinMaxDistance = rightMaxTrueIndex - rightMinTrueIndex;
+    const leftMaxTrueIndex = fetchedRecordsOnLeftCount;
+    const leftMinTrueIndex = Math.max(0, leftMaxTrueIndex - rightMinMaxDistance);
+    return {rightMaxTrueIndex, rightMinTrueIndex, leftMaxTrueIndex, leftMinTrueIndex};
+}
+
 const scanPageResponse = (mutableRecordsIndex, pageIndex, pageResponse, isStringDatePastFn) => {
 
     const {
@@ -696,23 +729,13 @@ const scanPageResponse = (mutableRecordsIndex, pageIndex, pageResponse, isString
 
     const shiftWithInserted = pageTotalRecordsCount - trueRecordsCount;
     const shiftWithoutInserted = shiftWithInserted - insertedRecordsOnPageCount;
-
-    const fetchedRecordsOnLeftCount = (pageId - 1) * recordsPerPage;
-    const fetchedRecordsOnRightCount =
-        pageTotalRecordsCount - ((pageId - 1) * recordsPerPage +  currentPageRecordCount);
-
-    const minTrueRecordsOnRightCount = Math.max(0, fetchedRecordsOnRightCount - shiftWithoutInserted);
-    const minPossibleShiftWithoutInsertedOnRightCount = Math.max(fetchedRecordsOnRightCount, shiftWithoutInserted);
-
-    const rightMaxTrueIndex = Math.max(0, trueRecordsCount - minTrueRecordsOnRightCount - 1);
-    const rightMinTrueIndex = Math.max(
-        0,
-        fetchedRecordsOnLeftCount + trueRecordsOnPageCount - minPossibleShiftWithoutInsertedOnRightCount - 1
-    );
-
-    const rightMinMaxDistance = rightMaxTrueIndex - rightMinTrueIndex;
-    const leftMaxTrueIndex = fetchedRecordsOnLeftCount;
-    const leftMinTrueIndex = Math.max(0, leftMaxTrueIndex - rightMinMaxDistance);
+    const {
+        rightMaxTrueIndex,
+        rightMinTrueIndex,
+        leftMaxTrueIndex,
+        leftMinTrueIndex
+    } = calcPageBoundaries(pageId, recordsPerPage, pageTotalRecordsCount, currentPageRecordCount, shiftWithoutInserted,
+        trueRecordsCount, trueRecordsOnPageCount);
 
     let pageScan = {
         pageIndex,
@@ -721,8 +744,10 @@ const scanPageResponse = (mutableRecordsIndex, pageIndex, pageResponse, isString
         isCutTailPage,
         isFullTailPage,
         isTailPage,
+
         shiftWithInserted,
         shiftWithoutInserted,
+
         trueRecordsIds,
         trueRecordsIdList,
         insertedRecordsIds,
@@ -739,6 +764,202 @@ const scanPageResponse = (mutableRecordsIndex, pageIndex, pageResponse, isString
         rightMaxTrueIndex,
     }
     return pageScan;
+}
+//
+// /**
+//  *
+//  * @param overlapRecords
+//  * @returns {{
+//     [pageIndex]: {
+//         [recordIndex]: {
+//             [pageIndexXX]: 'recordIndexInXX',
+//             [pageIndexYY]: 'recordIndexInYY',
+//         },
+//         [recordIndex2]: {
+//             [pageIndex2XX]: 'recordIndex2InXX',
+//             [pageIndex2YY]: 'recordIndex2InYY',
+//         },
+//     }
+// }}
+//  */
+// function getPageOverlapsByRecords(overlapRecords) {
+//     return overlapRecords.reduce((accPageOverlapsWith, overlapRecord) => {
+//             const {pageIndexes, isInsertedRecord} = overlapRecord;
+//             const overlappedPageIndexes = Object.keys[pageIndexes];
+//             overlappedPageIndexes.forEach(pageIndex => {
+//                 const recordIndex = pageIndexes[pageIndex];
+//                 if (accPageOverlapsWith[pageIndex] === undefined) {
+//                     accPageOverlapsWith[pageIndex] = {
+//                         /// [recordIndex] : { [pageIndex1]: recordIndex13, [pageIndex2]: recordIndex7}
+//                         [recordIndex]: {},
+//                     };
+//                 }
+//
+//                 overlappedPageIndexes.filter(
+//                     overlappedPageIndex => overlappedPageIndex !== pageIndex
+//                 ).forEach(overlappedPageIndexFiltered =>
+//                     accPageOverlapsWith[pageIndex][recordIndex][overlappedPageIndexFiltered] =
+//                         pageIndexes[overlappedPageIndexFiltered]
+//                 );
+//             })
+//             return accPageOverlapsWith;
+//         },
+//         {});
+// }
+
+/**
+ *
+ * @param overlapRecords
+ * @returns {{
+    [pageIndex]: {
+        [pageIndexXX]: true,
+        [pageIndexYY]: true,
+        [pageIndex2XX]: true,
+        [pageIndex2YY]: true,
+    }
+  }}
+ */
+function getPageOverlaps(overlapRecords) {
+    return overlapRecords.reduce((accPageOverlapsWith, overlapRecord) => {
+            const { pageIndexes } = overlapRecord;
+            const overlappedPageIndexes = Object.keys[pageIndexes];
+            overlappedPageIndexes.forEach(pageIndex => {
+                if (accPageOverlapsWith[pageIndex] === undefined) {
+                    accPageOverlapsWith[pageIndex] = {/* [pageIndex1]: true, [pageIndex2]: true,*/};
+                }
+
+                overlappedPageIndexes.filter(
+                    overlappedPageIndex => overlappedPageIndex !== pageIndex
+                ).forEach(overlappedPageIndexFiltered =>
+                    accPageOverlapsWith[pageIndex][overlappedPageIndexFiltered] = true
+                );
+            })
+            return accPageOverlapsWith;
+        },
+        {});
+}
+
+/**
+ * Fetches whole chain of linked pages
+ * @NOTE: recursive
+ *
+ * @param pageOverlaps  // @see getPageOverlaps()
+ * @param newKeys    // {[pageIndex]: true, ...}
+ * @param existingPageChainIndexEntries // {[pageIndex]: true, ...}
+ * @returns {*}
+ */
+function fetchSingleChainedOverlap (pageOverlaps, newKeys, existingPageChainIndexEntries = {}) {
+    let foundNewChainEntries = {};
+
+    Object.keys(newKeys).forEach(pageIndex => {
+        if (pageOverlaps[pageIndex] !== undefined) {
+            Object.keys(pageOverlaps[pageIndex])
+                .filter(newChildKeyPageIndex =>
+                    (
+                        existingPageChainIndexEntries[newChildKeyPageIndex] === undefined &&
+                        newKeys[newChildKeyPageIndex] === undefined
+                    )
+                )
+                .forEach(childNewKey => foundNewChainEntries[childNewKey] = true)
+
+        }
+    });
+
+    const hasNewEntries = Object.keys(foundNewChainEntries).length > 0;
+    const nextExistingKeys = Object.assign({}, existingPageChainIndexEntries, newKeys);
+    if (!hasNewEntries) {
+        return nextExistingKeys;
+    }
+    return fetchSingleChainedOverlap(pageOverlaps, foundNewChainEntries, nextExistingKeys);
+}
+
+/**
+ *
+ * @param topLevelPageIndexes
+ * @param pageOverlaps
+ * @returns {[
+ *     {
+ *      [pageIndex1]:true,
+ *      [pageIndex2]:true,
+ *      [pageIndex3]:true,
+ *      ...
+ *      },
+ *      ...
+ * ]}
+ */
+function fetchChainedOverlaps (topLevelPageIndexes, pageOverlaps) {
+    let usedPageIndexes = {};
+    let pageChains = [];
+    topLevelPageIndexes.forEach(topLevelPageIndex => {
+        if (usedPageIndexes[topLevelPageIndex] === undefined) {
+            let chain = fetchSingleChainedOverlap(pageOverlaps, {}, {[topLevelPageIndex]: true});
+            Object.assign(usedPageIndexes, chain);
+            pageChains.push(chain);
+        }
+    })
+    return pageChains;
+}
+
+const findPageChains = (recordsIndex, pageScanResults) => {
+    const { records = {}, overlapRecordIds = {} } = recordsIndex;
+    const overlapRecords = Object.keys(overlapRecordIds).map(id => records[id]);
+    // /**
+    //  * {
+    //  *     [pageIndex]: {
+    //  *         [recordIndex]: {
+    //  *             [pageIndexXX]: recordIndexInXX,
+    //  *             [pageIndexYY]: recordIndexInYY,
+    //  *         },
+    //  *         [recordIndex2]: {
+    //  *             [pageIndex2XX]: recordIndex2InXX,
+    //  *             [pageIndex2YY]: recordIndex2InYY,
+    //  *         },
+    //  *     }
+    //  * }
+    //  */
+    // const pageOverlaps = getPageOverlapsByRecords(overlapRecords);
+    /**
+     * {
+     *     [pageIndex]: {
+     *         [pageIndexXX]: true,
+     *         [pageIndexYY]: true,
+     *         [pageIndex2XX]: true,
+     *         [pageIndex4]: true,
+     *     },
+     *     [pageIndex4]: {
+     *         [pageIndex8]: true,
+     *     },
+     *     [pageIndex8]: {
+     *         [pageIndex9]: true,
+     *     },
+     * }
+     */
+    const pageOverlaps = getPageOverlaps(overlapRecords);
+
+    let scannedPageIndexes = pageScanResults.map(({pageIndex} = {}) => pageIndex);
+    let pageChains = fetchChainedOverlaps(scannedPageIndexes, pageOverlaps);
+
+    /**
+     * [
+     * {
+     *     chainIndex,
+     *     leftMinTrueIndex,
+     *     leftMaxTrueIndex,
+     *     rightMinTrueIndex,
+     *     rightMaxTrueIndex,
+     *     maxGap,
+     * }]
+     */
+    let ranges = getRanges(recordsIndex, pageScanResults, pageChains);
+}
+
+function getRange(recordsIndex, pageScanResults, pageChain) {
+    // const { trueRecordsCount, recordsPerPage } = recordsIndex;
+
+}
+
+function getRanges(recordsIndex, pageScanResults, pageChains) {
+    return pageChains.map(pageChain => getRanges(recordsIndex, pageScanResults, pageChain));
 }
 
 /**
@@ -827,10 +1048,10 @@ const fetchMissedRecords = async (
         let mutableRecordsIndex = {
             trueRecordsCount,
             trueRecordsFoundCount: 0,
-            // maxKnownTotalRecordCount,
+            maxKnownTotalRecordCount: trueRecordsCount,
             isTailCaught,
             recordsPerPage,
-            pageOverlap: {},
+            pageOverlaps: {},
             records: {},
             overlapRecordIds: {},
         };
@@ -883,7 +1104,13 @@ const fetchMissedRecords = async (
         } else {
             const missedRecordsCount = trueRecordsCount - trueRecordsFoundCount;
             console.log(`Found [${missedRecordsCount}] missed records. Trying to fetch ...`);
-
+            mutableRecordsIndex.maxKnownTotalRecordCount = pageScanResults.reduce(
+                (acc, scan) =>
+                    acc > scan.pageTotalRecordsCount ? acc : scan.pageTotalRecordsCount,
+                mutableRecordsIndex.maxKnownTotalRecordCount
+            );
+            mutableRecordsIndex.isTailCaught = pageScanResults.some(scan => scan.isTailPage);
+            const chainedPagesByIndex = findPageChains(mutableRecordsIndex, pageScanResults);
             // scanPageOverlaps(mutableRecordsIndex, pageScanResults)
         }
     }
@@ -891,9 +1118,6 @@ const fetchMissedRecords = async (
 
     return [firstPageResponse, ...otherPagesResponses];
 };
-function findOverLaps() {
-    
-}
 
 const isTotalChanged = (firstPageTotal, pageResponses) => {
     return pageResponses.some(({value: { total } = {} }) => total !== firstPageTotal);
