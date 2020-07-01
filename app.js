@@ -595,7 +595,7 @@ const isTailCaughtFn = (tailPagesResponses, recordsPerPage) => {
  * @param shiftWithoutInserted
  * @param trueRecordsCount
  * @param trueRecordsOnPageCount
- * @returns {{rightMinTrueIndex: number, leftMaxTrueIndex: number, rightMaxTrueIndex: number, leftMinTrueIndex: number}}
+ * @returns {{isMinMaxTrueEqual: boolean, rightMinTrueIndex: number, leftMaxTrueIndex: number, rightMaxTrueIndex: number, leftMinTrueIndex: number}}
  */
 function calcPageBoundaries(pageId, recordsPerPage, pageTotalRecordsCount, currentPageRecordCount, shiftWithoutInserted,
                             trueRecordsCount, trueRecordsOnPageCount) {
@@ -615,7 +615,8 @@ function calcPageBoundaries(pageId, recordsPerPage, pageTotalRecordsCount, curre
     const rightMinMaxDistance = rightMaxTrueIndex - rightMinTrueIndex;
     const leftMaxTrueIndex = fetchedRecordsOnLeftCount;
     const leftMinTrueIndex = Math.max(0, leftMaxTrueIndex - rightMinMaxDistance);
-    return {rightMaxTrueIndex, rightMinTrueIndex, leftMaxTrueIndex, leftMinTrueIndex};
+    const isMinMaxTrueEqual = leftMinTrueIndex === leftMaxTrueIndex;
+    return {rightMaxTrueIndex, rightMinTrueIndex, leftMaxTrueIndex, leftMinTrueIndex, isMinMaxTrueEqual};
 }
 
 const scanPageResponse = (mutableRecordsIndex, pageIndex, pageResponse, isStringDatePastFn) => {
@@ -733,7 +734,8 @@ const scanPageResponse = (mutableRecordsIndex, pageIndex, pageResponse, isString
         rightMaxTrueIndex,
         rightMinTrueIndex,
         leftMaxTrueIndex,
-        leftMinTrueIndex
+        leftMinTrueIndex,
+        isMinMaxTrueEqual,
     } = calcPageBoundaries(pageId, recordsPerPage, pageTotalRecordsCount, currentPageRecordCount, shiftWithoutInserted,
         trueRecordsCount, trueRecordsOnPageCount);
 
@@ -762,6 +764,8 @@ const scanPageResponse = (mutableRecordsIndex, pageIndex, pageResponse, isString
         leftMaxTrueIndex,
         rightMinTrueIndex,
         rightMaxTrueIndex,
+
+        isMinMaxTrueEqual,
     }
     return pageScan;
 }
@@ -943,6 +947,7 @@ const findPageChains = (recordsIndex, pageScanResults) => {
      * [
      * {
      *     chainIndex,
+     *     pageIndexes,
      *     leftMinTrueIndex,
      *     leftMaxTrueIndex,
      *     rightMinTrueIndex,
@@ -953,6 +958,12 @@ const findPageChains = (recordsIndex, pageScanResults) => {
     let ranges = getRanges(recordsIndex, pageScanResults, pageChains);
 }
 
+function mergeLists (lists) {
+    let flatList = lists.reduce((acc, listItem) => {
+
+    }, []);
+    // [...new Set([...array1 ,...array2])]
+}
 function getRange(recordsIndex, pageScanResults, pageChain) {
     // const { trueRecordsCount, recordsPerPage } = recordsIndex;
 
