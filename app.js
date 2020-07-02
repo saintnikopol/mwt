@@ -609,7 +609,7 @@ function calcPageBoundaries(pageId, recordsPerPage, pageTotalRecordsCount, curre
     const rightMaxTrueIndex = Math.max(0, trueRecordsCount - minTrueRecordsOnRightCount - 1);
     const rightMinTrueIndex = Math.max(
         0,
-        fetchedRecordsOnLeftCount + trueRecordsOnPageCount - minPossibleShiftWithoutInsertedOnRightCount - 1
+        fetchedRecordsOnLeftCount - minPossibleShiftWithoutInsertedOnRightCount + trueRecordsOnPageCount  - 1
     );
 
     const rightMinMaxDistance = rightMaxTrueIndex - rightMinTrueIndex;
@@ -638,7 +638,7 @@ const scanPageResponse = (mutableRecordsIndex, pageIndex, pageResponse, isString
     let trueUniqRecordsOnPageCount = 0;
     let insertedUniqRecordsOnPageCount = 0;
     data.forEach((record, recordIndex) => {
-        const { id, /*name = '', */date: stringDate } = record;
+        const { id, name = '', date: stringDate } = record;
         const isInsertedRecord = !isStringDatePastFn(stringDate);
 
         if (isInsertedRecord) {
@@ -654,7 +654,7 @@ const scanPageResponse = (mutableRecordsIndex, pageIndex, pageResponse, isString
                     [pageIndex]: recordIndex,
                 },
                 isInsertedRecord,
-                /*name,*/
+                name,
                 /*stringDate,*/
             }
             if (isInsertedRecord) {
@@ -769,47 +769,47 @@ const scanPageResponse = (mutableRecordsIndex, pageIndex, pageResponse, isString
     }
     return pageScan;
 }
-//
-// /**
-//  *
-//  * @param overlapRecords
-//  * @returns {{
-//     [pageIndex]: {
-//         [recordIndex]: {
-//             [pageIndexXX]: 'recordIndexInXX',
-//             [pageIndexYY]: 'recordIndexInYY',
-//         },
-//         [recordIndex2]: {
-//             [pageIndex2XX]: 'recordIndex2InXX',
-//             [pageIndex2YY]: 'recordIndex2InYY',
-//         },
-//     }
-// }}
-//  */
-// function getPageOverlapsByRecords(overlapRecords) {
-//     return overlapRecords.reduce((accPageOverlapsWith, overlapRecord) => {
-//             const {pageIndexes, isInsertedRecord} = overlapRecord;
-//             const overlappedPageIndexes = Object.keys[pageIndexes];
-//             overlappedPageIndexes.forEach(pageIndex => {
-//                 const recordIndex = pageIndexes[pageIndex];
-//                 if (accPageOverlapsWith[pageIndex] === undefined) {
-//                     accPageOverlapsWith[pageIndex] = {
-//                         /// [recordIndex] : { [pageIndex1]: recordIndex13, [pageIndex2]: recordIndex7}
-//                         [recordIndex]: {},
-//                     };
-//                 }
-//
-//                 overlappedPageIndexes.filter(
-//                     overlappedPageIndex => overlappedPageIndex !== pageIndex
-//                 ).forEach(overlappedPageIndexFiltered =>
-//                     accPageOverlapsWith[pageIndex][recordIndex][overlappedPageIndexFiltered] =
-//                         pageIndexes[overlappedPageIndexFiltered]
-//                 );
-//             })
-//             return accPageOverlapsWith;
-//         },
-//         {});
-// }
+
+/**
+ *
+ * @param overlapRecords
+ * @returns {{
+    [pageIndex]: {
+        [recordIndex]: {
+            [pageIndexXX]: 'recordIndexInXX',
+            [pageIndexYY]: 'recordIndexInYY',
+        },
+        [recordIndex2]: {
+            [pageIndex2XX]: 'recordIndex2InXX',
+            [pageIndex2YY]: 'recordIndex2InYY',
+        },
+    }
+}}
+ */
+function getPageOverlapsWithRecordsIndexes(overlapRecords) {
+    return overlapRecords.reduce((accPageOverlapsWith, overlapRecord) => {
+            const {pageIndexes, isInsertedRecord} = overlapRecord;
+            const overlappedPageIndexes = Object.keys[pageIndexes];
+            overlappedPageIndexes.forEach(pageIndex => {
+                const recordIndex = pageIndexes[pageIndex];
+                if (accPageOverlapsWith[pageIndex] === undefined) {
+                    accPageOverlapsWith[pageIndex] = {
+                        /// [recordIndex] : { [pageIndex1]: recordIndex13, [pageIndex2]: recordIndex7}
+                        [recordIndex]: {},
+                    };
+                }
+
+                overlappedPageIndexes.filter(
+                    overlappedPageIndex => overlappedPageIndex !== pageIndex
+                ).forEach(overlappedPageIndexFiltered =>
+                    accPageOverlapsWith[pageIndex][recordIndex][overlappedPageIndexFiltered] =
+                        pageIndexes[overlappedPageIndexFiltered]
+                );
+            })
+            return accPageOverlapsWith;
+        },
+        {});
+}
 
 /**
  *
@@ -893,35 +893,164 @@ function fetchSingleChainedOverlap (pageOverlaps, newKeys, existingPageChainInde
  */
 function fetchChainedOverlaps (topLevelPageIndexes, pageOverlaps) {
     let usedPageIndexes = {};
-    let pageChains = [];
+    let pageIndexesChains = [];
     topLevelPageIndexes.forEach(topLevelPageIndex => {
         if (usedPageIndexes[topLevelPageIndex] === undefined) {
             let chain = fetchSingleChainedOverlap(pageOverlaps, {}, {[topLevelPageIndex]: true});
             Object.assign(usedPageIndexes, chain);
-            pageChains.push(chain);
+            pageIndexesChains.push(chain);
         }
     })
-    return pageChains;
+    return pageIndexesChains;
+}
+
+function strcmp(a, b)
+{
+    return (a < b ? -1: (a > b ? 1: 0));
+}
+
+function findBorderRecordsAndSortChain(recordsIndex, chainOfPageIndexes, scannedPageIndexes) {
+
+    let pageIndexesList = Object.keys(chainOfPageIndexes);
+    if (pageIndexesList.length === 0) {
+        console.error('Error: chain is empty');
+    }
+    const pickName = id => recordsIndex.records[id].name;
+    const pickPage = pageIndex => scannedPageIndexes[pageIndex];
+    const pickPageFirstRecordId = pageIndex => pickPage(pageIndex).allRecordsIdList[0];
+    const pickPageFirstRecordName = pageIndex => pickName(pickPage(pageIndex).allRecordsIdList[0]);
+    const pickPageLastRecordId = pageIndex =>
+        pickPage(pageIndex).allRecordsIdList[pickPage(pageIndex).allRecordsIdList.length-1];
+    const pickPageLastRecordName = pageIndex => pickName(
+        pickPage(pageIndex).allRecordsIdList[pickPage(pageIndex).allRecordsIdList.length-1]
+    );
+    // let pageCount = pageIndexesList.length;
+    // let unUsedPageCount = pageCount;
+    // if (pageIndexesList.length === 1) {
+    //     let {
+    //         trueRecordsIds,
+    //         trueRecordsIdList,
+    //
+    //         leftMinTrueIndex,
+    //         leftMaxTrueIndex,
+    //         rightMinTrueIndex,
+    //         rightMaxTrueIndex,
+    //         // truePageOrder: [pageIndex1, pageIndex2, pageIndex3],
+    //         // pageIndexesList: {pageIndex1: true, pageIndex2: true, pageIndex3: true}
+    //     } = scannedPageIndexes[pageIndexesList[0]];
+    //
+    //     return ({
+    //         firstRecordName: pickName(trueRecordsIdList[0]),
+    //         trueRecordsIds: Object.assign({}, trueRecordsIds),
+    //         trueRecordsIdList: [...trueRecordsIdList],
+    //
+    //         leftMinTrueIndex,
+    //         leftMaxTrueIndex,
+    //         rightMinTrueIndex,
+    //         rightMaxTrueIndex,
+    //         truePageOrder: [pageIndexesList],
+    //         pageIndexes: Object.assign({}, chainOfPageIndexes),
+    //     });
+    // }
+    // sort by firstRecordName to catch first record 'name'
+    pageIndexesList.sort((a, b) =>
+        strcmp(pickPageFirstRecordName(a), pickPageFirstRecordName(b))
+    );
+    // store natively sorted page order
+    const truePageIndexesOrder = [...pageIndexesList];
+
+    const firstRecordId = pickPageFirstRecordId(truePageIndexesOrder[0]);
+    const firstRecordName = pickName(firstRecordId);
+
+    // sort by firstLastName to catch last record 'name'
+    pageIndexesList.sort((a, b) =>
+        strcmp(pickPageLastRecordName(a), pickPageLastRecordName(b))
+    );
+
+    const lastRecordId = pickPageLastRecordId(pageIndexesList[pageIndexesList.length - 1]);
+    const lastRecordName = pickName(lastRecordId);
+
+    const trueRecordsIds = {};
+    const insertedRecordsIds = {};
+
+    truePageIndexesOrder.map(pickPage).forEach(pageScan => {
+        Object.assign(trueRecordsIds, pageScan.trueRecordsIds);
+        Object.assign(insertedRecordsIds, pageScan.insertedRecordsIds);
+    });
+
+    const trueRecordsOnChainCount = Object.values(trueRecordsIds).length;
+    const insertedRecordsOnChainCount = Object.values(insertedRecordsIds).length;
+
+    return ({
+        truePageIndexesOrder,
+        pageIndexes: Object.assign(chainOfPageIndexes),
+
+        firstRecordId,
+        lastRecordId,
+        firstRecordName,
+        lastRecordName,
+
+        trueRecordsIds,
+        insertedRecordsIds,
+
+        trueRecordsOnChainCount,
+        insertedRecordsOnChainCount,
+        allRecordsOnChainCount: trueRecordsOnChainCount + insertedRecordsOnChainCount,
+    });
+}
+
+function findBorderRecordsAndSortChains(recordsIndex, chainsOfPageIndexes, scannedPageIndexes, pageOverlaps, pageOverlapsWithRecordsIndexes) {
+    /**
+     *
+     * [
+     *  {
+     *     truePageIndexesOrder,    truePageIndexesOrder, // []
+     *     pageIndexes: Object.assign(chainOfPageIndexes),    pageIndexes,     // {}
+     *
+     *     firstRecordId,
+     *     firstRecordId,    lastRecordId,
+     *     lastRecordId,    firstRecordName,
+     *     firstRecordName,    lastRecordName,
+     *     lastRecordName,}]);
+     *     trueRecordsIds,
+     *
+     *     insertedRecordsIds,
+     *     trueRecordsOnChainCount,
+     *     insertedRecordsOnChainCount,
+     *     allRecordsOnChainCount: trueRecordsOnChainCount + insertedRecordsOnChainCount,
+     * }];
+     *
+     *
+     *
+     *
+     */
+    let pageSortedChains = chainsOfPageIndexes.map(chainOfPageIndexes =>
+        findBorderRecordsAndSortChain(recordsIndex, chainOfPageIndexes, scannedPageIndexes)
+    );
+    pageSortedChains.sort((a, b) =>
+        strcmp(a.firstRecordName, b.firstRecordName)
+    );
+    return pageSortedChains;
 }
 
 const findPageChains = (recordsIndex, pageScanResults) => {
     const { records = {}, overlapRecordIds = {} } = recordsIndex;
     const overlapRecords = Object.keys(overlapRecordIds).map(id => records[id]);
-    // /**
-    //  * {
-    //  *     [pageIndex]: {
-    //  *         [recordIndex]: {
-    //  *             [pageIndexXX]: recordIndexInXX,
-    //  *             [pageIndexYY]: recordIndexInYY,
-    //  *         },
-    //  *         [recordIndex2]: {
-    //  *             [pageIndex2XX]: recordIndex2InXX,
-    //  *             [pageIndex2YY]: recordIndex2InYY,
-    //  *         },
-    //  *     }
-    //  * }
-    //  */
-    // const pageOverlaps = getPageOverlapsByRecords(overlapRecords);
+    /**
+     * {
+     *     [pageIndex]: {
+     *         [recordIndex]: {
+     *             [pageIndexXX]: recordIndexInXX,
+     *             [pageIndexYY]: recordIndexInYY,
+     *         },
+     *         [recordIndex2]: {
+     *             [pageIndex2XX]: recordIndex2InXX,
+     *             [pageIndex2YY]: recordIndex2InYY,
+     *         },
+     *     }
+     * }
+     */
+    const pageOverlapsWithRecordsIndexes = getPageOverlapsWithRecordsIndexes(overlapRecords);
     /**
      * {
      *     [pageIndex]: {
@@ -941,21 +1070,108 @@ const findPageChains = (recordsIndex, pageScanResults) => {
     const pageOverlaps = getPageOverlaps(overlapRecords);
 
     let scannedPageIndexes = pageScanResults.map(({pageIndex} = {}) => pageIndex);
-    let pageChains = fetchChainedOverlaps(scannedPageIndexes, pageOverlaps);
+
+    /**
+     * {[
+     *   {
+     *      [pageIndex1]:true,
+     *      [pageIndex2]:true,
+     *      [pageIndex3]:true,
+     *      ...
+     *   },
+     *    ...
+     * ]}
+     */
+     let chainsOfPageIndexes = fetchChainedOverlaps(scannedPageIndexes, pageOverlaps);
 
     /**
      * [
-     * {
-     *     chainIndex,
-     *     pageIndexes,
-     *     leftMinTrueIndex,
-     *     leftMaxTrueIndex,
-     *     rightMinTrueIndex,
-     *     rightMaxTrueIndex,
-     *     maxGap,
-     * }]
+     *      {
+     *          trueRecordsIds,
+     *          trueRecordsIdList,
+     *
+     *          leftMinTrueIndex,
+     *          leftMaxTrueIndex,
+     *          rightMinTrueIndex,
+     *          rightMaxTrueIndex,
+     *          truePageOrder: [pageIndex1, pageIndex2, pageIndex3],
+     *          pageIndexes: {pageIndex1: true, pageIndex2: true, pageIndex3: true}
+     *      }
+     * ]
      */
-    let ranges = getRanges(recordsIndex, pageScanResults, pageChains);
+    let chains = findBorderRecordsAndSortChains(recordsIndex, scannedPageIndexes, chainsOfPageIndexes, pageOverlaps, pageOverlapsWithRecordsIndexes);
+
+    // /**
+    //  * [
+    //  * {
+    //  *     chainIndex,
+    //  *     pageIndexes,
+    //  *     leftMinTrueIndex,
+    //  *     leftMaxTrueIndex,
+    //  *     rightMinTrueIndex,
+    //  *     rightMaxTrueIndex,
+    //  *     maxGap,
+    //  * }]
+    //  */
+    // let ranges = getRanges(recordsIndex, pageScanResults, chainsOfPageIndexes, pageOverlapsWithRecordsIndexes);
+}
+
+/**
+ * Order everything by leftMaxTrueIndex
+ *
+ * @param pageScanResults
+ * @param chains
+ * @returns {[
+ *     [{
+                pageIndex,
+                leftMinTrueIndex,
+                leftMaxTrueIndex,
+                rightMinTrueIndex,
+                rightMaxTrueIndex,
+            }, ...],
+ *     ...
+ * ]}
+ */
+function sortChainAndPagesAndSetBoundaries(pageScanResults, chains) {
+    const SORT_PROPERTY = 'leftMaxTrueIndex';
+    let chainScanWithSortedPageIndexes = chains.map(chain => {
+        Object.keys(chain).map(pageIndex => {
+            const {
+                pageIndex,
+                leftMinTrueIndex,
+                leftMaxTrueIndex,
+                rightMinTrueIndex,
+                rightMaxTrueIndex,
+            } = pageScanResults[pageIndex];
+            return {
+                pageIndex,
+                leftMinTrueIndex,
+                leftMaxTrueIndex,
+                rightMinTrueIndex,
+                rightMaxTrueIndex,
+            };
+        }).sort((a, b) => {
+            return a[SORT_PROPERTY] - b[SORT_PROPERTY];
+        });
+
+    });
+    return chainScanWithSortedPageIndexes.sort(
+        (a, b) => a[0][SORT_PROPERTY] - b[0][SORT_PROPERTY]
+    );
+}
+
+function calcChainBorders(chainScan) {
+
+}
+
+function adjustChainsBoundaries (recordsIndex, sortedChainsScans) {
+    let isBoundaryChanged = false;
+    let rollingBorders = {};
+    let adjustedInChainsBoundaries = sortedChainsScans.forEach(sortedChainScan => {
+
+    })
+
+    return sortedChainsScans;
 }
 
 function mergeLists (lists) {
@@ -964,13 +1180,20 @@ function mergeLists (lists) {
     }, []);
     // [...new Set([...array1 ,...array2])]
 }
-function getRange(recordsIndex, pageScanResults, pageChain) {
+
+function getRange(recordsIndex, pageScanResults, pageChain, pageOverlapsWithRecordsIndexes) {
+
     // const { trueRecordsCount, recordsPerPage } = recordsIndex;
 
 }
 
-function getRanges(recordsIndex, pageScanResults, pageChains) {
-    return pageChains.map(pageChain => getRanges(recordsIndex, pageScanResults, pageChain));
+function getRanges(recordsIndex, pageScanResults, pageIndexesChains, pageOverlapsWithRecordsIndexes) {
+    let sortedChainsScans = sortChainAndPagesAndSetBoundaries(pageScanResults, pageIndexesChains);
+    let adjustedChainsBoundaries = adjustChainsBoundaries(sortedChainsScans);
+    // let pageChainIndexesSortedByLeftMin = pageChains.map(chai)
+    return pageIndexesChains.map(pageChain =>
+        getRange(recordsIndex, pageScanResults, pageChain, pageOverlapsWithRecordsIndexes)
+    );
 }
 
 /**
@@ -1059,6 +1282,7 @@ const fetchMissedRecords = async (
         let mutableRecordsIndex = {
             trueRecordsCount,
             trueRecordsFoundCount: 0,
+            trueRecordsMissedCount: trueRecordsCount,
             maxKnownTotalRecordCount: trueRecordsCount,
             isTailCaught,
             recordsPerPage,

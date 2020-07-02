@@ -20,14 +20,14 @@ MisMisMis
 Overlap
 156 : 8 GGh..H                   15, 13:   + 6 / 0
 Mis
-154 : 9 i..I                     15, 15    +4 / 0
-Overlap
-157 : 10 I ..x.j.x..J            13, 12    + 7 / --2
+154 : 9 i..I                     15, 15    +4 / 0           pgIdx[8] => list[15] i..I
+Overlap                                                                 link ->pgIdx[9] r[0]
+157 : 10 I ..x.j.x..J            13, 12    + 7 / --2        pgIdx[9] => link -> pgIdx[10]
 Overlap
 160 : 11 JJJ.k..K                10, 7     +10 / 0
 */
 
-//157 : 11 jj kkkk K                   7, 7     +7 / 0
+//157 : 11 jj kkkk K                   7, 7     +7 / 0          list
 //158 : 11 jj kxkkk K                   8, 8     +8 / 0
 //158 : 11 jjj kkkk K                   8, 8     +8/ 0
 
