@@ -999,7 +999,7 @@ function findBorderRecordsAndSortChain(recordsIndex, chainOfPageIndexes, scanned
     });
 }
 
-function findBorderRecordsAndSortChains(recordsIndex, chainsOfPageIndexes, scannedPageIndexes, pageOverlaps, pageOverlapsWithRecordsIndexes) {
+function findBorderRecordsAndSortChains(recordsIndex, chainsOfPageIndexes, scannedPageIndexes) {
     /**
      *
      * [
@@ -1099,7 +1099,7 @@ const findPageChains = (recordsIndex, pageScanResults) => {
      *      }
      * ]
      */
-    let chains = findBorderRecordsAndSortChains(recordsIndex, scannedPageIndexes, chainsOfPageIndexes, pageOverlaps, pageOverlapsWithRecordsIndexes);
+    let fullySortedChains = findBorderRecordsAndSortChains(recordsIndex, chainsOfPageIndexes, scannedPageIndexes);
 
     // /**
     //  * [
