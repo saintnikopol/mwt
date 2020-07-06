@@ -360,7 +360,7 @@ const debugStartMoment =
   '2020-07-06T15:32:45.276Z';
 // const debugStartMoment =
 //   '2020-07-06T14:26:20.107Z';
-const IS_DEBUG_ENABLED = true;
+const IS_DEBUG_ENABLED = false;
 // Setup retry interceptor
 const interceptorId = rax.attach(); 
 
@@ -525,15 +525,20 @@ const calcPageIdsAfterFirstPage = (totalRecordsCount, firstPageRecordsCount) => 
 };
 
 const calcTailPageIds = (maxKnownTotal, firstPageTotal, recordsPerPage) => {
+console.log("const calcTailPageIds = (maxKnownTotal, firstPageTotal, recordsPerPage) => { recordsPerPage === ", recordsPerPage);
+console.log("const calcTailPageIds = (maxKnownTotal, firstPageTotal, recordsPerPage) => { firstPageTotal === ", firstPageTotal);
+console.log("const calcTailPageIds = (maxKnownTotal, firstPageTotal, recordsPerPage) => { maxKnownTotal === ", maxKnownTotal);
     const lastFetchedPageId = Math.ceil(firstPageTotal / recordsPerPage);
     const maxKnownTotalPageId = Math.ceil(maxKnownTotal / recordsPerPage);
 
     const isLastPageFullyFetched = lastFetchedPageId * recordsPerPage === firstPageTotal;
 
     const firstUnfetchedPageId = isLastPageFullyFetched ? lastFetchedPageId + 1 : lastFetchedPageId;
+    console.log("const firstUnfetchedPageId = isLastPageFullyFetched ? lastFetchedPageId + 1 : lastFetchedPageId; firstUnfetchedPageId === ", firstUnfetchedPageId);
     let tailPageIds = [];
-    for (let talePageId = firstUnfetchedPageId; firstUnfetchedPageId <= maxKnownTotalPageId; talePageId++) {
-        tailPageIds.push(tailPageIds)
+    for (let tailPageId = firstUnfetchedPageId; tailPageId <= maxKnownTotalPageId; tailPageId++) {
+         console.log("for (let tailPageId = firstUnfetchedPageId; firstUnfetchedPageId <= maxKnownTotalPageId; tailPageId++) { tailPageId === ", tailPageId);
+        tailPageIds.push(tailPageId)
     }
     return tailPageIds;
 };
@@ -1092,8 +1097,18 @@ function calcMissedRecordsPossiblePositions(recordsIndex, scannedPageIndexes, fu
     const trueRecordsMissedCount = trueRecordsCount - trueRecordsFoundCount;
     const insertedRecordsMissedCount = maxKnownTotalRecordCount - trueRecordsCount - insertedRecordsFoundCount;
     const gapLength = trueRecordsMissedCount + insertedRecordsMissedCount;
+    console.log("const gapLength = trueRecordsMissedCount + insertedRecordsMissedCount; gapLength === ", gapLength);
 
+    let xxx = {
+        trueRecordsCount,
+          trueRecordsFoundCount,
+          insertedRecordsFoundCount,
+          maxKnownTotalRecordCount,
+        // recordsPerPage,
+    };
+    console.log('xxx', xxx);
     const stripeLengths = fullySortedChains.map(chain => chain.allRecordsOnChainCount);
+    console.log("const stripeLengths = fullySortedChains.map(chain => chain.allRecordsOnChainCount); stripeLengths === ", stripeLengths);
     const gapsStarts = stripeLengths.reduce(
       (acc, stripeLength, index, stripes) => {
           if (index < stripes.length) {
@@ -1356,6 +1371,8 @@ async function fetchMissedRecords (
     if (isDataChanged) {
         const maxKnownTotal = getMaxTotal(otherPagesResponses);
         const tailPagesIds = calcTailPageIds(maxKnownTotal, trueRecordsCount, recordsPerPage);
+        console.log("const tailPagesIds = calcTailPageIds(maxKnownTotal, trueRecordsCount, recordsPerPage); tailPagesIds === ", tailPagesIds);
+        // throw "TAIL";
         const tailPagesResponses = await pageIdListFetchFn(tailPagesIds);
 
         console.error('tailPagesResponses a1 JSON STRINGIFY', JSON.stringify(tailPagesResponses) );
@@ -1460,6 +1477,7 @@ async function fetchMissedRecords (
             mutableRecordsIndex.isTailCaught = pageScanResults.some(scan => scan.isTailPage);
 
             const fullySortedChains = findPageChains(mutableRecordsIndex, pageScanResults);
+            console.log("const fullySortedChains = findPageChains(mutableRecordsIndex, pageScanResults); fullySortedChains === ", fullySortedChains);
 
             let scannedPageIndexes = pageScanResults.map(({pageIndex} = {}) => pageIndex);
 
@@ -1657,7 +1675,8 @@ const listUsers = async () => {
                 firstPageResponse,
                 unreadPagesResponses,
                 pageIdListFetchFn,
-                isStringDatePastFn
+                isStringDatePastFn,
+                recordsPerPage
             );
         }
 
