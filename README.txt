@@ -6,10 +6,13 @@ To run:
 Current status: works with static data.
 doesn't calculate volatile data
 
-@NOTE: main problem is that ordering by name causes new records appear inside of list.
-This can cause shifting of page borders. As result if new records appers on page1,
+@NOTE: main problem is that ordering by name causes new records to appear inside of list.
+This can cause shifting of page borders. As result if new records appears on page1,
 than all pages queried at later moment will miss every "first record of page" but can contain in the end record of next page.
 So simply fetching all pages from [0] to [LastPage] will not provide stable results.
+
+@NOTE: All calculations are done starting from moment of first request.
+If Daybreak was reached in process we still skip all record from day of "moment than script was started".
 
 [Done] You need to write a script that calculates how many times each visitor has visited the office.
 

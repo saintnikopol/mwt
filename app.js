@@ -516,7 +516,7 @@ const calcTailPageIds = (maxKnownTotal, firstPageTotal, recordsPerPage) => {
         tailPageIds.push(tailPageIds)
     }
     return tailPageIds;
-}
+};
 
 const isWeekDay = (date) => {
     const indexOfWeek = date.getDay();
@@ -557,6 +557,7 @@ const getUTCStartOfDateMilliseconds = date => {
     dateCopy.setUTCHours(0, 0, 0, 0);
     return dateCopy.getTime();
 };
+
 /**
  *
  * @param start Date
@@ -583,7 +584,7 @@ const isTailCaughtFn = (tailPagesResponses, recordsPerPage) => {
 
     // if (lastName)
     return false;
-}
+};
 
 /**
  * Analyze Page data and set possible boundaries
@@ -766,9 +767,9 @@ const scanPageResponse = (mutableRecordsIndex, pageIndex, pageResponse, isString
         rightMaxTrueIndex,
 
         isMinMaxTrueEqual,
-    }
+    };
     return pageScan;
-}
+};
 
 /**
  *
@@ -837,7 +838,7 @@ function getPageOverlaps(overlapRecords) {
                 ).forEach(overlappedPageIndexFiltered =>
                     accPageOverlapsWith[pageIndex][overlappedPageIndexFiltered] = true
                 );
-            })
+            });
             return accPageOverlapsWith;
         },
         {});
@@ -900,7 +901,7 @@ function fetchChainedOverlaps (topLevelPageIndexes, pageOverlaps) {
             Object.assign(usedPageIndexes, chain);
             pageIndexesChains.push(chain);
         }
-    })
+    });
     return pageIndexesChains;
 }
 
@@ -1114,7 +1115,7 @@ const findPageChains = (recordsIndex, pageScanResults) => {
     //  * }]
     //  */
     // let ranges = getRanges(recordsIndex, pageScanResults, chainsOfPageIndexes, pageOverlapsWithRecordsIndexes);
-}
+};
 
 /**
  * Order everything by leftMaxTrueIndex
@@ -1168,7 +1169,7 @@ function adjustChainsBoundaries (recordsIndex, sortedChainsScans) {
     let rollingBorders = {};
     let adjustedInChainsBoundaries = sortedChainsScans.forEach(sortedChainScan => {
 
-    })
+    });
 
     return sortedChainsScans;
 }
@@ -1362,7 +1363,7 @@ const getMaxTotal = pageResponses => {
         (acc, {value: { total } = {} }) =>
             acc > total ? acc : total,
         0);
-}
+};
 
 /**
  * {
