@@ -344,8 +344,15 @@ const debugUnreadPagesResponse = [{
             "date": "2020-06-15T16:13:37+00:00"
         }, {"id": 41, "name": "Visitor #9", "date": "2020-06-23T10:52:01+00:00"}]
     }
-}]
-// Setup retry interceptor     
+}];
+
+const debugDataChanged1FirstPageResponse =  {"success":true,"page":1,"value":{"total":150,"data":[{"id":0,"name":"Visitor #0","date":"2020-06-30T19:52:14+00:00"},{"id":1,"name":"Visitor #1","date":"2020-06-29T13:57:45+00:00"},{"id":10,"name":"Visitor #10","date":"2020-06-30T11:17:00+00:00"},{"id":100,"name":"Visitor #100","date":"2020-06-24T15:12:25+00:00"},{"id":101,"name":"Visitor #101","date":"2020-07-05T15:12:26+00:00"},{"id":102,"name":"Visitor #102","date":"2020-06-27T16:45:32+00:00"},{"id":103,"name":"Visitor #103","date":"2020-06-25T00:08:23+00:00"},{"id":104,"name":"Visitor #104","date":"2020-07-04T07:25:39+00:00"},{"id":105,"name":"Visitor #105","date":"2020-07-01T17:02:59+00:00"},{"id":106,"name":"Visitor #106","date":"2020-06-22T07:31:10+00:00"},{"id":107,"name":"Visitor #107","date":"2020-06-22T13:22:39+00:00"},{"id":108,"name":"Visitor #108","date":"2020-06-21T09:56:55+00:00"},{"id":109,"name":"Visitor #109","date":"2020-06-23T19:15:58+00:00"},{"id":11,"name":"Visitor #11","date":"2020-06-22T10:22:41+00:00"},{"id":110,"name":"Visitor #110","date":"2020-06-26T04:35:43+00:00"}]}};
+
+const debugDataChanged1UnreadPageResponses =  [{"success":true,"page":2,"value":{"total":151,"data":[{"id":110,"name":"Visitor #110","date":"2020-06-26T04:35:43+00:00"},{"id":111,"name":"Visitor #111","date":"2020-06-21T10:28:21+00:00"},{"id":112,"name":"Visitor #112","date":"2020-07-04T04:20:01+00:00"},{"id":113,"name":"Visitor #113","date":"2020-06-24T18:02:47+00:00"},{"id":114,"name":"Visitor #114","date":"2020-06-30T20:54:43+00:00"},{"id":115,"name":"Visitor #115","date":"2020-07-04T06:09:32+00:00"},{"id":116,"name":"Visitor #116","date":"2020-06-29T20:33:56+00:00"},{"id":117,"name":"Visitor #117","date":"2020-07-05T17:18:52+00:00"},{"id":118,"name":"Visitor #118","date":"2020-07-02T20:51:43+00:00"},{"id":119,"name":"Visitor #119","date":"2020-07-04T21:41:11+00:00"},{"id":12,"name":"Visitor #12","date":"2020-07-02T10:49:56+00:00"},{"id":120,"name":"Visitor #120","date":"2020-06-29T18:47:24+00:00"},{"id":121,"name":"Visitor #121","date":"2020-07-01T04:12:33+00:00"},{"id":122,"name":"Visitor #122","date":"2020-07-04T20:57:23+00:00"},{"id":123,"name":"Visitor #123","date":"2020-06-22T07:19:08+00:00"}]}},{"success":true,"page":3,"value":{"total":153,"data":[{"id":125,"name":"Visitor #125","date":"2020-06-27T12:01:46+00:00"},{"id":126,"name":"Visitor #126","date":"2020-06-30T22:24:29+00:00"},{"id":127,"name":"Visitor #127","date":"2020-06-25T17:04:15+00:00"},{"id":128,"name":"Visitor #128","date":"2020-06-25T16:52:00+00:00"},{"id":129,"name":"Visitor #129","date":"2020-06-26T09:13:36+00:00"},{"id":13,"name":"Visitor #13","date":"2020-07-02T13:50:42+00:00"},{"id":130,"name":"Visitor #130","date":"2020-06-25T14:24:28+00:00"},{"id":131,"name":"Visitor #131","date":"2020-07-01T13:54:43+00:00"},{"id":132,"name":"Visitor #132","date":"2020-06-21T03:56:52+00:00"},{"id":133,"name":"Visitor #133","date":"2020-06-28T05:37:56+00:00"},{"id":134,"name":"Visitor #134","date":"2020-06-27T19:35:19+00:00"},{"id":135,"name":"Visitor #135","date":"2020-07-01T17:54:35+00:00"},{"id":136,"name":"Visitor #136","date":"2020-06-29T09:32:30+00:00"},{"id":137,"name":"Visitor #137","date":"2020-06-26T12:28:16+00:00"},{"id":138,"name":"Visitor #138","date":"2020-07-03T09:56:32+00:00"}]}},{"success":true,"page":4,"value":{"total":157,"data":[{"id":137,"name":"Visitor #137","date":"2020-06-26T12:28:16+00:00"},{"id":138,"name":"Visitor #138","date":"2020-07-03T09:56:32+00:00"},{"id":139,"name":"Visitor #139","date":"2020-07-01T02:57:41+00:00"},{"id":151,"date":"2020-07-06T14:15:10.757Z","name":"Visitor #14"},{"id":14,"name":"Visitor #14","date":"2020-07-04T15:50:53+00:00"},{"id":140,"name":"Visitor #140","date":"2020-06-25T09:05:51+00:00"},{"id":141,"name":"Visitor #141","date":"2020-07-03T21:23:04+00:00"},{"id":142,"name":"Visitor #142","date":"2020-07-03T01:23:15+00:00"},{"id":143,"name":"Visitor #143","date":"2020-06-27T02:56:23+00:00"},{"id":144,"name":"Visitor #144","date":"2020-07-04T09:39:41+00:00"},{"id":145,"name":"Visitor #145","date":"2020-06-25T16:21:02+00:00"},{"id":146,"name":"Visitor #146","date":"2020-06-21T16:09:59+00:00"},{"id":147,"name":"Visitor #147","date":"2020-07-04T02:11:47+00:00"},{"id":148,"name":"Visitor #148","date":"2020-06-22T09:45:51+00:00"},{"id":149,"name":"Visitor #149","date":"2020-06-26T00:21:46+00:00"}]}},{"success":true,"page":5,"value":{"total":155,"data":[{"id":16,"name":"Visitor #16","date":"2020-06-26T17:34:03+00:00"},{"id":17,"name":"Visitor #17","date":"2020-07-03T03:45:05+00:00"},{"id":18,"name":"Visitor #18","date":"2020-06-29T09:44:47+00:00"},{"id":19,"name":"Visitor #19","date":"2020-06-28T10:57:59+00:00"},{"id":2,"name":"Visitor #2","date":"2020-06-22T02:19:54+00:00"},{"id":20,"name":"Visitor #20","date":"2020-07-03T22:26:35+00:00"},{"id":21,"name":"Visitor #21","date":"2020-06-23T04:36:17+00:00"},{"id":22,"name":"Visitor #22","date":"2020-07-01T00:22:20+00:00"},{"id":23,"name":"Visitor #23","date":"2020-07-03T20:48:51+00:00"},{"id":24,"name":"Visitor #24","date":"2020-06-30T07:14:14+00:00"},{"id":25,"name":"Visitor #25","date":"2020-06-21T17:55:45+00:00"},{"id":26,"name":"Visitor #26","date":"2020-06-29T07:09:50+00:00"},{"id":27,"name":"Visitor #27","date":"2020-06-27T13:53:37+00:00"},{"id":28,"name":"Visitor #28","date":"2020-07-02T12:31:29+00:00"},{"id":29,"name":"Visitor #29","date":"2020-06-23T23:45:56+00:00"}]}},{"success":true,"page":6,"value":{"total":156,"data":[{"id":29,"name":"Visitor #29","date":"2020-06-23T23:45:56+00:00"},{"id":3,"name":"Visitor #3","date":"2020-06-29T15:20:03+00:00"},{"id":30,"name":"Visitor #30","date":"2020-06-26T21:36:44+00:00"},{"id":31,"name":"Visitor #31","date":"2020-07-02T17:04:13+00:00"},{"id":32,"name":"Visitor #32","date":"2020-06-23T15:43:01+00:00"},{"id":33,"name":"Visitor #33","date":"2020-06-25T10:47:49+00:00"},{"id":34,"name":"Visitor #34","date":"2020-07-05T09:44:48+00:00"},{"id":35,"name":"Visitor #35","date":"2020-07-01T01:47:12+00:00"},{"id":36,"name":"Visitor #36","date":"2020-06-26T03:06:35+00:00"},{"id":37,"name":"Visitor #37","date":"2020-07-01T20:07:18+00:00"},{"id":38,"name":"Visitor #38","date":"2020-07-02T11:10:22+00:00"},{"id":39,"name":"Visitor #39","date":"2020-06-29T11:42:30+00:00"},{"id":4,"name":"Visitor #4","date":"2020-06-27T13:19:41+00:00"},{"id":40,"name":"Visitor #40","date":"2020-07-01T15:14:09+00:00"},{"id":154,"date":"2020-07-06T14:15:10.756Z","name":"Visitor #41"}]}},{"success":true,"page":7,"value":{"total":154,"data":[{"id":42,"name":"Visitor #42","date":"2020-06-21T04:56:00+00:00"},{"id":43,"name":"Visitor #43","date":"2020-07-01T16:12:10+00:00"},{"id":44,"name":"Visitor #44","date":"2020-06-29T03:58:33+00:00"},{"id":45,"name":"Visitor #45","date":"2020-06-28T18:10:04+00:00"},{"id":46,"name":"Visitor #46","date":"2020-06-25T18:12:47+00:00"},{"id":47,"name":"Visitor #47","date":"2020-07-02T07:37:12+00:00"},{"id":48,"name":"Visitor #48","date":"2020-06-23T00:48:20+00:00"},{"id":49,"name":"Visitor #49","date":"2020-06-26T07:05:58+00:00"},{"id":5,"name":"Visitor #5","date":"2020-06-28T22:45:05+00:00"},{"id":50,"name":"Visitor #50","date":"2020-07-03T12:27:57+00:00"},{"id":51,"name":"Visitor #51","date":"2020-06-26T20:30:05+00:00"},{"id":52,"name":"Visitor #52","date":"2020-06-23T19:18:31+00:00"},{"id":53,"name":"Visitor #53","date":"2020-07-03T14:08:45+00:00"},{"id":54,"name":"Visitor #54","date":"2020-07-02T17:51:14+00:00"},{"id":55,"name":"Visitor #55","date":"2020-06-30T13:25:37+00:00"}]}},{"success":true,"page":8,"value":{"total":152,"data":[{"id":58,"name":"Visitor #58","date":"2020-07-01T10:47:46+00:00"},{"id":59,"name":"Visitor #59","date":"2020-06-24T16:47:56+00:00"},{"id":6,"name":"Visitor #6","date":"2020-07-01T03:12:52+00:00"},{"id":60,"name":"Visitor #60","date":"2020-06-22T03:04:36+00:00"},{"id":61,"name":"Visitor #61","date":"2020-06-23T04:25:41+00:00"},{"id":62,"name":"Visitor #62","date":"2020-06-29T18:51:43+00:00"},{"id":63,"name":"Visitor #63","date":"2020-06-26T13:22:47+00:00"},{"id":64,"name":"Visitor #64","date":"2020-06-23T20:31:39+00:00"},{"id":65,"name":"Visitor #65","date":"2020-06-25T07:20:24+00:00"},{"id":66,"name":"Visitor #66","date":"2020-06-29T21:35:30+00:00"},{"id":67,"name":"Visitor #67","date":"2020-06-26T08:07:47+00:00"},{"id":68,"name":"Visitor #68","date":"2020-07-05T04:44:08+00:00"},{"id":69,"name":"Visitor #69","date":"2020-06-30T21:51:39+00:00"},{"id":7,"name":"Visitor #7","date":"2020-07-04T04:33:01+00:00"},{"id":70,"name":"Visitor #70","date":"2020-06-28T04:25:58+00:00"}]}},{"success":true,"page":9,"value":{"total":159,"data":[{"id":68,"name":"Visitor #68","date":"2020-07-05T04:44:08+00:00"},{"id":69,"name":"Visitor #69","date":"2020-06-30T21:51:39+00:00"},{"id":7,"name":"Visitor #7","date":"2020-07-04T04:33:01+00:00"},{"id":70,"name":"Visitor #70","date":"2020-06-28T04:25:58+00:00"},{"id":150,"date":"2020-07-06T14:15:10.759Z","name":"Visitor #71"},{"id":71,"name":"Visitor #71","date":"2020-07-02T18:57:30+00:00"},{"id":72,"name":"Visitor #72","date":"2020-07-04T17:48:21+00:00"},{"id":73,"name":"Visitor #73","date":"2020-07-02T14:34:40+00:00"},{"id":74,"name":"Visitor #74","date":"2020-06-28T03:42:24+00:00"},{"id":75,"name":"Visitor #75","date":"2020-06-26T23:59:39+00:00"},{"id":76,"name":"Visitor #76","date":"2020-06-21T10:46:14+00:00"},{"id":157,"date":"2020-07-06T14:15:10.759Z","name":"Visitor #77"},{"id":77,"name":"Visitor #77","date":"2020-06-28T11:44:51+00:00"},{"id":78,"name":"Visitor #78","date":"2020-06-23T06:34:37+00:00"},{"id":154,"date":"2020-07-06T14:15:10.759Z","name":"Visitor #79"}]}},{"success":true,"page":10,"value":{"total":158,"data":[{"id":80,"name":"Visitor #80","date":"2020-06-27T19:23:06+00:00"},{"id":81,"name":"Visitor #81","date":"2020-06-26T04:52:22+00:00"},{"id":82,"name":"Visitor #82","date":"2020-07-05T16:50:38+00:00"},{"id":83,"name":"Visitor #83","date":"2020-07-04T15:26:05+00:00"},{"id":84,"name":"Visitor #84","date":"2020-06-27T02:42:15+00:00"},{"id":85,"name":"Visitor #85","date":"2020-07-05T07:30:23+00:00"},{"id":86,"name":"Visitor #86","date":"2020-06-26T14:40:46+00:00"},{"id":87,"name":"Visitor #87","date":"2020-07-05T04:19:43+00:00"},{"id":88,"name":"Visitor #88","date":"2020-07-02T02:20:47+00:00"},{"id":89,"name":"Visitor #89","date":"2020-06-24T21:43:47+00:00"},{"id":9,"name":"Visitor #9","date":"2020-06-29T13:41:22+00:00"},{"id":90,"name":"Visitor #90","date":"2020-07-02T11:10:46+00:00"},{"id":91,"name":"Visitor #91","date":"2020-06-22T03:13:49+00:00"},{"id":92,"name":"Visitor #92","date":"2020-07-03T17:45:51+00:00"},{"id":151,"date":"2020-07-06T14:15:10.758Z","name":"Visitor #93"}]}}];
+
+const debugStartMoment = '2020-07-06T14:26:20.107Z';
+const IS_DEBUG_ENABLED = true;
+// Setup retry interceptor
 const interceptorId = rax.attach(); 
 
 
@@ -449,10 +456,14 @@ const fetchTokenFn = async () =>  {
 const fetchUsers = async (page, token) =>  {
 
     try {
-        if (page === 1 ) {
-            return debugFirstPageResponse;
-        } else {
-            return debugUnreadPagesResponse[page-2];
+        if (IS_DEBUG_ENABLED) {
+            if (page === 1 ) {
+                // return debugFirstPageResponse;
+                return debugDataChanged1FirstPageResponse;
+            } else {
+                // return debugUnreadPagesResponse[page-2];
+                return debugDataChanged1UnreadPageResponses[page-2];
+            }
         }
         console.error('fu1');
         
@@ -790,7 +801,7 @@ const scanPageResponse = (mutableRecordsIndex, pageIndex, pageResponse, isString
 function getPageOverlapsWithRecordsIndexes(overlapRecords) {
     return overlapRecords.reduce((accPageOverlapsWith, overlapRecord) => {
             const {pageIndexes, isInsertedRecord} = overlapRecord;
-            const overlappedPageIndexes = Object.keys[pageIndexes];
+            const overlappedPageIndexes = Object.keys(pageIndexes);
             overlappedPageIndexes.forEach(pageIndex => {
                 const recordIndex = pageIndexes[pageIndex];
                 if (accPageOverlapsWith[pageIndex] === undefined) {
@@ -827,7 +838,7 @@ function getPageOverlapsWithRecordsIndexes(overlapRecords) {
 function getPageOverlaps(overlapRecords) {
     return overlapRecords.reduce((accPageOverlapsWith, overlapRecord) => {
             const { pageIndexes } = overlapRecord;
-            const overlappedPageIndexes = Object.keys[pageIndexes];
+            const overlappedPageIndexes = Object.keys(pageIndexes);
             overlappedPageIndexes.forEach(pageIndex => {
                 if (accPageOverlapsWith[pageIndex] === undefined) {
                     accPageOverlapsWith[pageIndex] = {/* [pageIndex1]: true, [pageIndex2]: true,*/};
@@ -1332,8 +1343,12 @@ async function fetchMissedRecords (
         const tailPagesIds = calcTailPageIds(maxKnownTotal, trueRecordsCount, recordsPerPage);
         const tailPagesResponses = await pageIdListFetchFn(tailPagesIds);
 
+        console.error('tailPagesResponses a1 JSON STRINGIFY', JSON.stringify(tailPagesResponses) );
+        console.error('tailPagesResponses a1', (tailPagesResponses) );
+
         const isTailCaught = isTailCaughtFn(tailPagesResponses, recordsPerPage);
 
+        console.log('isTailCaught', isTailCaught);
         let pagesResponses = [firstPageResponse, ...otherPagesResponses, ...tailPagesResponses];
 
         /**
@@ -1449,6 +1464,10 @@ async function fetchMissedRecords (
             console.log(`Page Ids list is : [${pageIdsToFetch.join(',')}].`);
 
             let missedPageResponses = await pageIdListFetchFn(pageIdsToFetch);
+
+            console.error('missedPageResponses a1 JSON STRINGIFY', JSON.stringify(missedPageResponses) );
+            console.error('missedPageResponses a1', (missedPageResponses) );
+
             return [...missedPageResponses, ...tailPagesResponses];
             // /**
             //  * [
@@ -1559,6 +1578,10 @@ const listUsers = async () => {
         }
 
         let startMoment = new Date();
+        if (IS_DEBUG_ENABLED) {
+            startMoment = new Date(debugStartMoment);
+        }
+        console.log('startMoment', startMoment);
         const startMomentUTCStartOfDateMilliseconds = getUTCStartOfDateMilliseconds(startMoment);
         const isPastDayFn = (date) => getUTCStartOfDateMilliseconds(date) < startMomentUTCStartOfDateMilliseconds;
         const isStringDatePastFn = (date) => startMomentUTCStartOfDateMilliseconds < Date.parse(date);
@@ -1609,7 +1632,7 @@ const listUsers = async () => {
         // let finalDataSet = [firstPageResponse, ...unreadPagesResponses];
 
         let pagesWithMissedRecordsResponses = [];
-        if (!isDataChanged) {
+        if (isDataChanged) {
             // fetch missed records if any
             pagesWithMissedRecordsResponses = await fetchMissedRecords(
                 firstPageResponse,
@@ -1625,6 +1648,8 @@ const listUsers = async () => {
 
         console.log('visits', visits);
         console.log(JSON.stringify(visits));
+
+        console.log('isDataChanged', isDataChanged);
 
     } catch (err) {
     
