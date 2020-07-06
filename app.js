@@ -1137,7 +1137,6 @@ function sortChainAndPagesAndSetBoundaries(pageScanResults, chains) {
     let chainScanWithSortedPageIndexes = chains.map(chain => {
         Object.keys(chain).map(pageIndex => {
             const {
-                pageIndex,
                 leftMinTrueIndex,
                 leftMaxTrueIndex,
                 rightMinTrueIndex,
