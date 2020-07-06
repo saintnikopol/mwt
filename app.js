@@ -657,7 +657,7 @@ const scanPageResponse = (mutableRecordsIndex, pageIndex, pageResponse, isString
                 isInsertedRecord,
                 name,
                 /*stringDate,*/
-            }
+            };
             if (isInsertedRecord) {
                 insertedUniqRecordsOnPageCount++;
             } else {
@@ -910,6 +910,14 @@ function strcmp(a, b)
     return (a < b ? -1: (a > b ? 1: 0));
 }
 
+/**
+ * Sort pages inside a chain
+ *
+ * @param recordsIndex
+ * @param chainOfPageIndexes
+ * @param scannedPageIndexes
+ * @returns {{lastRecordId: *, lastRecordName: *, trueRecordsIds: {}, trueRecordsOnChainCount: number, insertedRecordsIds: {}, firstRecordName: *, insertedRecordsOnChainCount: number, allRecordsOnChainCount: number, truePageIndexesOrder: string[], firstRecordId: *, pageIndexes: any}}
+ */
 function findBorderRecordsAndSortChain(recordsIndex, chainOfPageIndexes, scannedPageIndexes) {
 
     let pageIndexesList = Object.keys(chainOfPageIndexes);
@@ -984,7 +992,7 @@ function findBorderRecordsAndSortChain(recordsIndex, chainOfPageIndexes, scanned
 
     return ({
         truePageIndexesOrder,
-        pageIndexes: Object.assign(chainOfPageIndexes),
+        pageIndexes: Object.assign({}, chainOfPageIndexes),
 
         firstRecordId,
         lastRecordId,
@@ -1000,38 +1008,77 @@ function findBorderRecordsAndSortChain(recordsIndex, chainOfPageIndexes, scanned
     });
 }
 
+/**
+ * Sort chains and page inside chains using firstRecordName
+ *
+ * @param recordsIndex
+ * @param chainsOfPageIndexes
+ * @param scannedPageIndexes
+ * @returns {Uint8Array | BigInt64Array | *[] | Float64Array | Int8Array | Float32Array | Int32Array | Uint32Array | Uint8ClampedArray | BigUint64Array | Int16Array | Uint16Array}
+ */
 function findBorderRecordsAndSortChains(recordsIndex, chainsOfPageIndexes, scannedPageIndexes) {
     /**
      *
      * [
      *  {
-     *     truePageIndexesOrder,    truePageIndexesOrder, // []
-     *     pageIndexes: Object.assign(chainOfPageIndexes),    pageIndexes,     // {}
+     *     truePageIndexesOrder, // []
+     *     pageIndexes,     // {}
      *
      *     firstRecordId,
-     *     firstRecordId,    lastRecordId,
-     *     lastRecordId,    firstRecordName,
-     *     firstRecordName,    lastRecordName,
-     *     lastRecordName,}]);
-     *     trueRecordsIds,
+     *     lastRecordId,
+     *     firstRecordName,
+     *     lastRecordName,
      *
+     *     trueRecordsIds,
      *     insertedRecordsIds,
+     *
      *     trueRecordsOnChainCount,
      *     insertedRecordsOnChainCount,
-     *     allRecordsOnChainCount: trueRecordsOnChainCount + insertedRecordsOnChainCount,
-     * }];
-     *
-     *
-     *
-     *
+     *     allRecordsOnChainCount,
+     * },
+     * ...
+     * ];
      */
     let pageSortedChains = chainsOfPageIndexes.map(chainOfPageIndexes =>
         findBorderRecordsAndSortChain(recordsIndex, chainOfPageIndexes, scannedPageIndexes)
     );
-    pageSortedChains.sort((a, b) =>
+    let fullySortedChains = pageSortedChains.sort((a, b) =>
         strcmp(a.firstRecordName, b.firstRecordName)
     );
-    return pageSortedChains;
+    return fullySortedChains;
+}
+
+/**
+ * Find gaps coordinates
+ * @param recordsIndex
+ * @param scannedPageIndexes
+ * @param fullySortedChains
+ * @returns {{left: *, right: *}[]}
+ */
+function calcMissedRecordsPossiblePositions(recordsIndex, scannedPageIndexes, fullySortedChains ) {
+    //chain minRightIndex can't be greater than next chain minLeftIndex;
+    const {
+        trueRecordsCount,
+        trueRecordsFoundCount,
+        insertedRecordsFoundCount,
+        maxKnownTotalRecordCount,
+        // recordsPerPage,
+    } = recordsIndex;
+    const trueRecordsMissedCount = trueRecordsCount - trueRecordsFoundCount;
+    const insertedRecordsMissedCount = maxKnownTotalRecordCount - trueRecordsCount - insertedRecordsFoundCount;
+    const gapLength = trueRecordsMissedCount + insertedRecordsMissedCount;
+
+    const stripeLengths = fullySortedChains.map(chain => chain.allRecordsOnChainCount);
+    const gapsStarts = stripeLengths.reduce(
+      (acc, stripeLength, index, stripes) => {
+          if (index < stripes.length) {
+              let prev = index === 0 ? 0 : acc[index - 1];
+              acc.push(prev + stripeLength);
+          }
+          return acc;
+      }, []);
+
+    return gapsStarts.map(gapStart => ({left: gapStart, right: gapStart + gapLength}));
 }
 
 const findPageChains = (recordsIndex, pageScanResults) => {
@@ -1086,114 +1133,137 @@ const findPageChains = (recordsIndex, pageScanResults) => {
      let chainsOfPageIndexes = fetchChainedOverlaps(scannedPageIndexes, pageOverlaps);
 
     /**
-     * [
-     *      {
-     *          trueRecordsIds,
-     *          trueRecordsIdList,
      *
-     *          leftMinTrueIndex,
-     *          leftMaxTrueIndex,
-     *          rightMinTrueIndex,
-     *          rightMaxTrueIndex,
-     *          truePageOrder: [pageIndex1, pageIndex2, pageIndex3],
-     *          pageIndexes: {pageIndex1: true, pageIndex2: true, pageIndex3: true}
-     *      }
-     * ]
+     * [
+     *  {
+     *     truePageIndexesOrder, // []
+     *     pageIndexes,     // {}
+     *
+     *     firstRecordId,
+     *     lastRecordId,
+     *     firstRecordName,
+     *     lastRecordName,
+     *
+     *     trueRecordsIds,
+     *     insertedRecordsIds,
+     *
+     *     trueRecordsOnChainCount,
+     *     insertedRecordsOnChainCount,
+     *     allRecordsOnChainCount,
+     * },
+     * ...
+     * ];
      */
-    let fullySortedChains = findBorderRecordsAndSortChains(recordsIndex, chainsOfPageIndexes, scannedPageIndexes);
+    const fullySortedChains = findBorderRecordsAndSortChains(recordsIndex, chainsOfPageIndexes, scannedPageIndexes);
 
-    // /**
-    //  * [
-    //  * {
-    //  *     chainIndex,
-    //  *     pageIndexes,
-    //  *     leftMinTrueIndex,
-    //  *     leftMaxTrueIndex,
-    //  *     rightMinTrueIndex,
-    //  *     rightMaxTrueIndex,
-    //  *     maxGap,
-    //  * }]
-    //  */
-    // let ranges = getRanges(recordsIndex, pageScanResults, chainsOfPageIndexes, pageOverlapsWithRecordsIndexes);
+    return fullySortedChains;
 };
 
-/**
- * Order everything by leftMaxTrueIndex
- *
- * @param pageScanResults
- * @param chains
- * @returns {[
- *     [{
-                pageIndex,
-                leftMinTrueIndex,
-                leftMaxTrueIndex,
-                rightMinTrueIndex,
-                rightMaxTrueIndex,
-            }, ...],
- *     ...
- * ]}
- */
-function sortChainAndPagesAndSetBoundaries(pageScanResults, chains) {
-    const SORT_PROPERTY = 'leftMaxTrueIndex';
-    let chainScanWithSortedPageIndexes = chains.map(chain => {
-        Object.keys(chain).map(pageIndex => {
-            const {
-                leftMinTrueIndex,
-                leftMaxTrueIndex,
-                rightMinTrueIndex,
-                rightMaxTrueIndex,
-            } = pageScanResults[pageIndex];
-            return {
-                pageIndex,
-                leftMinTrueIndex,
-                leftMaxTrueIndex,
-                rightMinTrueIndex,
-                rightMaxTrueIndex,
-            };
-        }).sort((a, b) => {
-            return a[SORT_PROPERTY] - b[SORT_PROPERTY];
-        });
+// /**
+//  * Order everything by leftMaxTrueIndex
+//  *
+//  * @param pageScanResults
+//  * @param chains
+//  * @returns {[
+//  *     [{
+//                 pageIndex,
+//                 leftMinTrueIndex,
+//                 leftMaxTrueIndex,
+//                 rightMinTrueIndex,
+//                 rightMaxTrueIndex,
+//             }, ...],
+//  *     ...
+//  * ]}
+//  */
+// function sortChainAndPagesAndSetBoundaries(pageScanResults, chains) {
+//     const SORT_PROPERTY = 'leftMaxTrueIndex';
+//     let chainScanWithSortedPageIndexes = chains.map(chain => {
+//         Object.keys(chain).map(pageIndex => {
+//             const {
+//                 leftMinTrueIndex,
+//                 leftMaxTrueIndex,
+//                 rightMinTrueIndex,
+//                 rightMaxTrueIndex,
+//             } = pageScanResults[pageIndex];
+//             return {
+//                 pageIndex,
+//                 leftMinTrueIndex,
+//                 leftMaxTrueIndex,
+//                 rightMinTrueIndex,
+//                 rightMaxTrueIndex,
+//             };
+//         }).sort((a, b) => {
+//             return a[SORT_PROPERTY] - b[SORT_PROPERTY];
+//         });
+//
+//     });
+//     return chainScanWithSortedPageIndexes.sort(
+//         (a, b) => a[0][SORT_PROPERTY] - b[0][SORT_PROPERTY]
+//     );
+// }
 
-    });
-    return chainScanWithSortedPageIndexes.sort(
-        (a, b) => a[0][SORT_PROPERTY] - b[0][SORT_PROPERTY]
-    );
+// function calcChainBorders(chainScan) {
+//
+// }
+
+// function adjustChainsBoundaries (recordsIndex, sortedChainsScans) {
+//     let isBoundaryChanged = false;
+//     let rollingBorders = {};
+//     let adjustedInChainsBoundaries = sortedChainsScans.forEach(sortedChainScan => {
+//
+//     });
+//
+//     return sortedChainsScans;
+// }
+
+// function getRange(recordsIndex, pageScanResults, pageChain, pageOverlapsWithRecordsIndexes) {
+//
+//     // const { trueRecordsCount, recordsPerPage } = recordsIndex;
+//
+// }
+
+// function getRanges(recordsIndex, pageScanResults, pageIndexesChains, pageOverlapsWithRecordsIndexes) {
+//     let sortedChainsScans = sortChainAndPagesAndSetBoundaries(pageScanResults, pageIndexesChains);
+//     let adjustedChainsBoundaries = adjustChainsBoundaries(sortedChainsScans);
+//     // let pageChainIndexesSortedByLeftMin = pageChains.map(chai)
+//     return pageIndexesChains.map(pageChain =>
+//         getRange(recordsIndex, pageScanResults, pageChain, pageOverlapsWithRecordsIndexes)
+//     );
+// }
+
+function mergeGaps (gapPositions) {
+    const mergedGapPositions = gapPositions.reduce(
+      (acc, gap, index) => {
+          const prevGap = index === 0 ? {left: 0, right: 0} : acc[acc.length - 1];
+          if (prevGap.right <= gap.left) {
+              acc[acc.length - 1] = {left: prevGap.left, right: gap.right};
+          } else {
+              acc.push(gap);
+          }
+          return acc;
+      }, []);
+    return mergedGapPositions;
 }
 
-function calcChainBorders(chainScan) {
+function coverMergedGapPositionsWithPageIds(mergedGapPositions, recordsPerPage) {
 
-}
-
-function adjustChainsBoundaries (recordsIndex, sortedChainsScans) {
-    let isBoundaryChanged = false;
-    let rollingBorders = {};
-    let adjustedInChainsBoundaries = sortedChainsScans.forEach(sortedChainScan => {
-
-    });
-
-    return sortedChainsScans;
-}
-
-function mergeLists (lists) {
-    let flatList = lists.reduce((acc, listItem) => {
-
-    }, []);
-    // [...new Set([...array1 ,...array2])]
-}
-
-function getRange(recordsIndex, pageScanResults, pageChain, pageOverlapsWithRecordsIndexes) {
-
-    // const { trueRecordsCount, recordsPerPage } = recordsIndex;
-
-}
-
-function getRanges(recordsIndex, pageScanResults, pageIndexesChains, pageOverlapsWithRecordsIndexes) {
-    let sortedChainsScans = sortChainAndPagesAndSetBoundaries(pageScanResults, pageIndexesChains);
-    let adjustedChainsBoundaries = adjustChainsBoundaries(sortedChainsScans);
-    // let pageChainIndexesSortedByLeftMin = pageChains.map(chai)
-    return pageIndexesChains.map(pageChain =>
-        getRange(recordsIndex, pageScanResults, pageChain, pageOverlapsWithRecordsIndexes)
-    );
+    const positionToPageId = (position) => 1 + Math.floor(position / recordsPerPage);
+    const pageIdsSet = mergedGapPositions.reduce((acc, {left, right}, index) => {
+        const leftPageId = positionToPageId(left);
+        const rightPageId = positionToPageId(right);
+        acc[leftPageId] = true;
+        if (rightPageId < leftPageId) {
+            console.error("Error: algorithm got missed ranges");
+            // return [];
+            throw "Algorithm error";
+        }
+        for (let pageId = leftPageId + 1; pageId <= rightPageId; pageId++) {
+            acc[leftPageId] = true;
+        }
+        return acc;
+    }, {});
+    const pageIdsList = Object.keys(pageIdsSet).sort();
+    return pageIdsList;
 }
 
 /**
@@ -1240,13 +1310,13 @@ function getRanges(recordsIndex, pageScanResults, pageIndexesChains, pageOverlap
  * @param recordsPerPage
  * @returns {{}}
  */
-const fetchMissedRecords = async (
+async function fetchMissedRecords (
     firstPageResponse,
     otherPagesResponses,
     pageIdListFetchFn,
     isStringDatePastFn,
     recordsPerPage,
-) => {
+) {
 
     // trueRecords === records we should receive for fetching all pages if no new records would be inserted
     // trueRecordsCount === firstPageResponseTotal
@@ -1260,7 +1330,7 @@ const fetchMissedRecords = async (
     if (isDataChanged) {
         const maxKnownTotal = getMaxTotal(otherPagesResponses);
         const tailPagesIds = calcTailPageIds(maxKnownTotal, trueRecordsCount, recordsPerPage);
-        const tailPagesResponses = pageIdListFetchFn(tailPagesIds);
+        const tailPagesResponses = await pageIdListFetchFn(tailPagesIds);
 
         const isTailCaught = isTailCaughtFn(tailPagesResponses, recordsPerPage);
 
@@ -1282,7 +1352,7 @@ const fetchMissedRecords = async (
         let mutableRecordsIndex = {
             trueRecordsCount,
             trueRecordsFoundCount: 0,
-            trueRecordsMissedCount: trueRecordsCount,
+            insertedRecordsFoundCount: 0,
             maxKnownTotalRecordCount: trueRecordsCount,
             isTailCaught,
             recordsPerPage,
@@ -1326,32 +1396,80 @@ const fetchMissedRecords = async (
             (pageResponse, pageIndex) =>
                 scanPageResponse(mutableRecordsIndex, pageIndex, pageResponse, isStringDatePastFn)
         );
-        const trueRecordsFoundCount = pageScanResults.reduce(
-            (acc, { trueUniqRecordsOnPageCount }) => acc + trueUniqRecordsOnPageCount, 
-            0);
+        const {trueRecordsFoundCount, insertedRecordsFoundCount} = pageScanResults.reduce(
+            (acc,
+             { trueUniqRecordsOnPageCount, insertedUniqRecordsOnPageCount }) =>
+            {
+                acc.trueRecordsFoundCount += trueUniqRecordsOnPageCount;
+                acc.insertedRecordsFoundCount += insertedUniqRecordsOnPageCount;
+                return acc;
+            },
+            {trueRecordsFoundCount: 0, insertedRecordsFoundCount: 0}
+          );
+
         if (trueRecordsFoundCount > trueRecordsCount) {
             console.error('DATA BUG DATA BUG DATA BUG')
         }
         // If server data is malformed then on re-fetch we can get more "trueOriginal" records 
         // than correct data count should be 
         if (trueRecordsFoundCount >= trueRecordsCount) {
-            return pagesResponses;
+            return tailPagesResponses;
         } else {
+
             const missedRecordsCount = trueRecordsCount - trueRecordsFoundCount;
             console.log(`Found [${missedRecordsCount}] missed records. Trying to fetch ...`);
+
+            mutableRecordsIndex.trueRecordsFoundCount = trueRecordsFoundCount;
+            mutableRecordsIndex.insertedRecordsFoundCount = insertedRecordsFoundCount;
             mutableRecordsIndex.maxKnownTotalRecordCount = pageScanResults.reduce(
                 (acc, scan) =>
                     acc > scan.pageTotalRecordsCount ? acc : scan.pageTotalRecordsCount,
                 mutableRecordsIndex.maxKnownTotalRecordCount
             );
             mutableRecordsIndex.isTailCaught = pageScanResults.some(scan => scan.isTailPage);
-            const chainedPagesByIndex = findPageChains(mutableRecordsIndex, pageScanResults);
+
+            const fullySortedChains = findPageChains(mutableRecordsIndex, pageScanResults);
+
+            let scannedPageIndexes = pageScanResults.map(({pageIndex} = {}) => pageIndex);
+
+            /**
+             * Gap left and right
+             * @NOTE: gaps can overlap
+             *
+             * @type {{left: *, right: *}[]}
+             */
+            const gapPositions = calcMissedRecordsPossiblePositions(mutableRecordsIndex, scannedPageIndexes, fullySortedChains);
+
+            const mergedGapPositions = mergeGaps(gapPositions);
+
+            const pageIdsToFetch = coverMergedGapPositionsWithPageIds(mergedGapPositions, recordsPerPage);
+
+            console.log(`Calculated ${pageIdsToFetch.length} in total possible pages with missed records.`);
+
+            console.log(`Page Ids list is : [${pageIdsToFetch.join(',')}].`);
+
+            let missedPageResponses = await pageIdListFetchFn(pageIdsToFetch);
+            return [...missedPageResponses, ...tailPagesResponses];
+            // /**
+            //  * [
+            //  * {
+            //  *     chainIndex,
+            //  *     pageIndexes,
+            //  *     leftMinTrueIndex,
+            //  *     leftMaxTrueIndex,
+            //  *     rightMinTrueIndex,
+            //  *     rightMaxTrueIndex,
+            //  *     maxGap,
+            //  * }]
+            //  */
+            // let ranges = getRanges(recordsIndex, pageScanResults, chainsOfPageIndexes, pageOverlapsWithRecordsIndexes);
+
             // scanPageOverlaps(mutableRecordsIndex, pageScanResults)
         }
     }
 
 
-    return [firstPageResponse, ...otherPagesResponses];
+    return [];
 };
 
 const isTotalChanged = (firstPageTotal, pageResponses) => {
