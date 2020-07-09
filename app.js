@@ -1190,6 +1190,62 @@ const calcVisits = (pageResponses, isPastDayFn) => {
     return sortedVisits;
 };
 
+const validateResults = (fileReadDump, fileLogger, isPastDayFn, total) => {
+    let validateTailPagesResponses = JSON.parse(fileReadDump('tailPagesResponses.json'));
+    let validateMissedPageResponses = JSON.parse(fileReadDump('missedPageResponses.json'));
+    let validateFirstPageResponse = JSON.parse(fileReadDump('firstPageResponse.json'));
+    let validateUnreadPagesResponses = JSON.parse(fileReadDump('unreadPagesResponses.json'));
+
+    let all = [
+        validateFirstPageResponse,
+        ...validateUnreadPagesResponses,
+        ...validateTailPagesResponses,
+        ...validateMissedPageResponses,
+    ];
+    fileLogger('validate_1_allResponses.json',  JSON.stringify(all));
+    let allRecsWithDuplicates = (all.map(i => i.value.data)).flat().sort((a, b) => a.id - b.id);
+    fileLogger('validate_2_allRecordsWithDubs.json', JSON.stringify(allRecsWithDuplicates));
+    let allRecsSet = {};
+    allRecsWithDuplicates.forEach(rec => allRecsSet[rec.id] = rec);
+    Object.keys(allRecsSet).forEach(id =>
+    {
+        allRecsSet[id].isPast = isPastDayFn(new Date(allRecsSet[id].date));
+        allRecsSet[id].isWeekDay = isWeekDay(new Date(allRecsSet[id].date));
+    });
+    fileLogger('validate_3_allRecsSet.json', JSON.stringify(allRecsSet));
+
+    let correctPastRecsIds = Object.keys(allRecsSet).filter(id => allRecsSet[id].isPast);
+    fileLogger('validate_4.0_correctPastRecsIds.json', JSON.stringify(correctPastRecsIds));
+    fileLogger('validate_4.0_correctPastRecsIds_length_' + correctPastRecsIds.length,
+      correctPastRecsIds.length);
+
+    //implicit check for id < firstPageTotalCount
+    let correctLessThanTotalIds = Object.keys(allRecsSet).filter(id => id < total);
+    fileLogger('validate_4.1_correctLessThanTotalIds.json', JSON.stringify(correctLessThanTotalIds));
+    fileLogger('validate_4.1_correctLessThanTotalIds_length_' + correctLessThanTotalIds.length,
+      correctLessThanTotalIds.length);
+
+    let correctRecsIds = Object.keys(allRecsSet).filter(id => allRecsSet[id].isPast && allRecsSet[id].isWeekDay);
+
+    let correctRecsSet = {};
+    correctRecsIds.forEach(id => correctRecsSet[id] = allRecsSet[id]);
+    fileLogger('validate_4_correctRecsSet.json', JSON.stringify(correctRecsSet));
+
+    let correctRecsList = correctRecsIds.map(id => correctRecsSet[id]);
+    fileLogger('validate_5_correctRecsList.json', JSON.stringify(correctRecsList));
+    fileLogger('validate_6_correctRecsList_length_' + correctRecsList.length, correctRecsList.length);
+
+    let countedRecSet = {};
+    correctRecsList.forEach(rec => {
+        if (countedRecSet[rec.name] === undefined) {
+            countedRecSet[rec.name] = Object.assign({count: 1}, countedRecSet[rec.name]);
+        } else {
+            countedRecSet[rec.name].count++;
+        }
+    });
+    fileLogger('validate_7_countedRecSet.json', JSON.stringify(correctRecsList));
+};
+
 const listUsers = async () => {
 
     try {
@@ -1333,63 +1389,8 @@ const listUsers = async () => {
         }
         console.log('isDataChanged', isDataChanged);
 
-        const validateResults = () => {
-            let validateTailPagesResponses = JSON.parse(fileReadDump('tailPagesResponses.json'));
-            let validateMissedPageResponses = JSON.parse(fileReadDump('missedPageResponses.json'));
-            let validateFirstPageResponse = JSON.parse(fileReadDump('firstPageResponse.json'));
-            let validateUnreadPagesResponses = JSON.parse(fileReadDump('unreadPagesResponses.json'));
 
-            let all = [
-              validateFirstPageResponse,
-              ...validateUnreadPagesResponses,
-              ...validateTailPagesResponses,
-              ...validateMissedPageResponses,
-            ];
-            fileLogger('validate_1_allResponses.json',  JSON.stringify(all));
-            let allRecsWithDuplicates = (all.map(i => i.value.data)).flat().sort((a, b) => a.id - b.id);
-            fileLogger('validate_2_allRecordsWithDubs.json', JSON.stringify(allRecsWithDuplicates));
-            let allRecsSet = {};
-            allRecsWithDuplicates.forEach(rec => allRecsSet[rec.id] = rec);
-            Object.keys(allRecsSet).forEach(id =>
-            {
-                allRecsSet[id].isPast = isPastDayFn(new Date(allRecsSet[id].date));
-                allRecsSet[id].isWeekDay = isWeekDay(new Date(allRecsSet[id].date));
-            });
-            fileLogger('validate_3_allRecsSet.json', JSON.stringify(allRecsSet));
-
-            let correctPastRecsIds = Object.keys(allRecsSet).filter(id => allRecsSet[id].isPast);
-            fileLogger('validate_4.0_correctPastRecsIds.json', JSON.stringify(correctPastRecsIds));
-            fileLogger('validate_4.0_correctPastRecsIds_length_' + correctPastRecsIds.length,
-              correctPastRecsIds.length);
-
-            //implicit check for id < firstPageTotalCount
-            let correctLessThanTotalIds = Object.keys(allRecsSet).filter(id => id < total);
-            fileLogger('validate_4.1_correctLessThanTotalIds.json', JSON.stringify(correctLessThanTotalIds));
-            fileLogger('validate_4.1_correctLessThanTotalIds_length_' + correctLessThanTotalIds.length,
-              correctLessThanTotalIds.length);
-
-            let correctRecsIds = Object.keys(allRecsSet).filter(id => allRecsSet[id].isPast && allRecsSet[id].isWeekDay);
-
-            let correctRecsSet = {};
-            correctRecsIds.forEach(id => correctRecsSet[id] = allRecsSet[id]);
-            fileLogger('validate_4_correctRecsSet.json', JSON.stringify(correctRecsSet));
-
-            let correctRecsList = correctRecsIds.map(id => correctRecsSet[id]);
-            fileLogger('validate_5_correctRecsList.json', JSON.stringify(correctRecsList));
-            fileLogger('validate_6_correctRecsList_length_' + correctRecsList.length, correctRecsList.length);
-
-            let countedRecSet = {};
-            correctRecsList.forEach(rec => {
-                if (countedRecSet[rec.name] === undefined) {
-                    countedRecSet[rec.name] = Object.assign({count: 1}, countedRecSet[rec.name]);
-                } else {
-                    countedRecSet[rec.name].count++;
-                }
-            });
-            fileLogger('validate_7_countedRecSet.json', JSON.stringify(correctRecsList));
-        };
-
-        validateResults();
+        validateResults(fileReadDump, fileLogger, isPastDayFn, total);
     } catch (err) {
         console.error('General error:', err);
     }
