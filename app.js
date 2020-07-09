@@ -6,456 +6,22 @@ const fs = require('fs');
 const HOST_URL = 'https://motorway-challenge-api.herokuapp.com/api/login';
 const LIST_URL_TEMPLATE = (pageNo, token) => `https://motorway-challenge-api.herokuapp.com/api/visits?page=${pageNo}&token=${token}`;
 
+// RETRY SETUP START
 const RAX_CONFIG = {
     // Retry 3 times on requests that return a response (500, etc) before giving up.  Defaults to 3.
     retry: 3,
     // Retry twice on errors that don't return a response (ENOTFOUND, ETIMEDOUT, etc).
     noResponseRetries: 2,
 };
+// Setup retry interceptor
+const interceptorId = rax.attach();
+// RETRY SETUP END
 
-
-
-const debugFirstPageResponse = {
-    "success": true, "page": 1, "value": {
-        "total": 150,
-        "data": [{"id": 12, "name": "Visitor #0", "date": "2020-06-14T02:36:48+00:00"}, {
-            "id": 93,
-            "name": "Visitor #1",
-            "date": "2020-06-13T13:05:34+00:00"
-        }, {"id": 39, "name": "Visitor #1", "date": "2020-06-16T10:38:42+00:00"}, {
-            "id": 17,
-            "name": "Visitor #10",
-            "date": "2020-06-15T03:22:20+00:00"
-        }, {"id": 114, "name": "Visitor #11", "date": "2020-06-18T16:10:00+00:00"}, {
-            "id": 109,
-            "name": "Visitor #11",
-            "date": "2020-06-13T18:52:38+00:00"
-        }, {"id": 136, "name": "Visitor #12", "date": "2020-06-24T18:08:23+00:00"}, {
-            "id": 48,
-            "name": "Visitor #13",
-            "date": "2020-06-21T23:08:54+00:00"
-        }, {"id": 43, "name": "Visitor #13", "date": "2020-06-21T22:26:03+00:00"}, {
-            "id": 55,
-            "name": "Visitor #14",
-            "date": "2020-06-14T16:45:18+00:00"
-        }, {"id": 20, "name": "Visitor #14", "date": "2020-06-12T11:24:06+00:00"}, {
-            "id": 1,
-            "name": "Visitor #14",
-            "date": "2020-06-20T23:37:43+00:00"
-        }, {"id": 99, "name": "Visitor #15", "date": "2020-06-18T05:33:50+00:00"}, {
-            "id": 86,
-            "name": "Visitor #15",
-            "date": "2020-06-24T15:39:47+00:00"
-        }, {"id": 116, "name": "Visitor #16", "date": "2020-06-16T00:54:03+00:00"}]
-    }
-};
-const debugUnreadPagesResponse = [{
-    "success": true, "page": 2, "value": {
-        "total": 150,
-        "data": [{"id": 42, "name": "Visitor #16", "date": "2020-06-12T17:57:47+00:00"}, {
-            "id": 84,
-            "name": "Visitor #17",
-            "date": "2020-06-13T22:16:16+00:00"
-        }, {"id": 35, "name": "Visitor #17", "date": "2020-06-13T11:48:00+00:00"}, {
-            "id": 101,
-            "name": "Visitor #18",
-            "date": "2020-06-21T18:32:16+00:00"
-        }, {"id": 26, "name": "Visitor #18", "date": "2020-06-17T17:04:25+00:00"}, {
-            "id": 14,
-            "name": "Visitor #18",
-            "date": "2020-06-17T07:00:09+00:00"
-        }, {"id": 66, "name": "Visitor #2", "date": "2020-06-11T00:47:54+00:00"}, {
-            "id": 67,
-            "name": "Visitor #20",
-            "date": "2020-06-23T15:08:48+00:00"
-        }, {"id": 50, "name": "Visitor #20", "date": "2020-06-22T09:57:38+00:00"}, {
-            "id": 126,
-            "name": "Visitor #21",
-            "date": "2020-06-23T06:09:41+00:00"
-        }, {"id": 100, "name": "Visitor #21", "date": "2020-06-16T12:27:08+00:00"}, {
-            "id": 8,
-            "name": "Visitor #21",
-            "date": "2020-06-15T19:10:15+00:00"
-        }, {"id": 115, "name": "Visitor #22", "date": "2020-06-18T20:40:33+00:00"}, {
-            "id": 104,
-            "name": "Visitor #22",
-            "date": "2020-06-22T22:43:08+00:00"
-        }, {"id": 147, "name": "Visitor #23", "date": "2020-06-23T09:19:42+00:00"}]
-    }
-}, {
-    "success": true, "page": 3, "value": {
-        "total": 150,
-        "data": [{"id": 129, "name": "Visitor #24", "date": "2020-06-25T06:40:01+00:00"}, {
-            "id": 53,
-            "name": "Visitor #24",
-            "date": "2020-06-15T03:04:15+00:00"
-        }, {"id": 52, "name": "Visitor #24", "date": "2020-06-14T08:48:52+00:00"}, {
-            "id": 5,
-            "name": "Visitor #24",
-            "date": "2020-06-25T09:10:34+00:00"
-        }, {"id": 140, "name": "Visitor #25", "date": "2020-06-17T01:49:49+00:00"}, {
-            "id": 103,
-            "name": "Visitor #26",
-            "date": "2020-06-22T15:02:28+00:00"
-        }, {"id": 75, "name": "Visitor #26", "date": "2020-06-23T01:56:36+00:00"}, {
-            "id": 119,
-            "name": "Visitor #27",
-            "date": "2020-06-17T17:19:21+00:00"
-        }, {"id": 46, "name": "Visitor #27", "date": "2020-06-12T21:59:32+00:00"}, {
-            "id": 112,
-            "name": "Visitor #28",
-            "date": "2020-06-13T06:35:22+00:00"
-        }, {"id": 40, "name": "Visitor #28", "date": "2020-06-19T01:44:30+00:00"}, {
-            "id": 9,
-            "name": "Visitor #28",
-            "date": "2020-06-14T11:29:22+00:00"
-        }, {"id": 138, "name": "Visitor #29", "date": "2020-06-24T16:54:58+00:00"}, {
-            "id": 127,
-            "name": "Visitor #3",
-            "date": "2020-06-18T23:51:12+00:00"
-        }, {"id": 102, "name": "Visitor #3", "date": "2020-06-22T14:01:15+00:00"}]
-    }
-}, {
-    "success": true, "page": 4, "value": {
-        "total": 150,
-        "data": [{"id": 34, "name": "Visitor #3", "date": "2020-06-24T04:10:46+00:00"}, {
-            "id": 3,
-            "name": "Visitor #3",
-            "date": "2020-06-18T02:01:06+00:00"
-        }, {"id": 124, "name": "Visitor #30", "date": "2020-06-25T01:58:36+00:00"}, {
-            "id": 65,
-            "name": "Visitor #30",
-            "date": "2020-06-14T23:02:39+00:00"
-        }, {"id": 15, "name": "Visitor #30", "date": "2020-06-18T04:53:22+00:00"}, {
-            "id": 22,
-            "name": "Visitor #31",
-            "date": "2020-06-18T18:51:16+00:00"
-        }, {"id": 105, "name": "Visitor #32", "date": "2020-06-18T18:48:13+00:00"}, {
-            "id": 95,
-            "name": "Visitor #32",
-            "date": "2020-06-12T22:58:13+00:00"
-        }, {"id": 96, "name": "Visitor #33", "date": "2020-06-22T21:12:33+00:00"}, {
-            "id": 51,
-            "name": "Visitor #33",
-            "date": "2020-06-20T23:08:20+00:00"
-        }, {"id": 71, "name": "Visitor #34", "date": "2020-06-20T11:35:06+00:00"}, {
-            "id": 16,
-            "name": "Visitor #34",
-            "date": "2020-06-17T18:56:05+00:00"
-        }, {"id": 10, "name": "Visitor #34", "date": "2020-06-15T19:13:41+00:00"}, {
-            "id": 134,
-            "name": "Visitor #35",
-            "date": "2020-06-21T02:04:55+00:00"
-        }, {"id": 117, "name": "Visitor #35", "date": "2020-06-12T17:50:27+00:00"}]
-    }
-}, {
-    "success": true, "page": 5, "value": {
-        "total": 150,
-        "data": [{"id": 143, "name": "Visitor #37", "date": "2020-06-24T19:36:37+00:00"}, {
-            "id": 30,
-            "name": "Visitor #37",
-            "date": "2020-06-11T04:47:20+00:00"
-        }, {"id": 79, "name": "Visitor #40", "date": "2020-06-12T13:53:54+00:00"}, {
-            "id": 80,
-            "name": "Visitor #41",
-            "date": "2020-06-25T11:47:35+00:00"
-        }, {"id": 64, "name": "Visitor #41", "date": "2020-06-23T06:26:18+00:00"}, {
-            "id": 131,
-            "name": "Visitor #42",
-            "date": "2020-06-18T12:25:05+00:00"
-        }, {"id": 45, "name": "Visitor #42", "date": "2020-06-11T19:28:09+00:00"}, {
-            "id": 19,
-            "name": "Visitor #42",
-            "date": "2020-06-23T18:59:49+00:00"
-        }, {"id": 113, "name": "Visitor #43", "date": "2020-06-13T10:28:27+00:00"}, {
-            "id": 37,
-            "name": "Visitor #43",
-            "date": "2020-06-25T03:10:03+00:00"
-        }, {"id": 21, "name": "Visitor #43", "date": "2020-06-23T21:51:55+00:00"}, {
-            "id": 4,
-            "name": "Visitor #43",
-            "date": "2020-06-18T06:38:22+00:00"
-        }, {"id": 139, "name": "Visitor #45", "date": "2020-06-19T11:56:27+00:00"}, {
-            "id": 69,
-            "name": "Visitor #45",
-            "date": "2020-06-18T15:07:47+00:00"
-        }, {"id": 68, "name": "Visitor #45", "date": "2020-06-25T16:26:01+00:00"}]
-    }
-}, {
-    "success": true, "page": 6, "value": {
-        "total": 150,
-        "data": [{"id": 118, "name": "Visitor #46", "date": "2020-06-18T20:48:20+00:00"}, {
-            "id": 60,
-            "name": "Visitor #46",
-            "date": "2020-06-19T14:27:23+00:00"
-        }, {"id": 122, "name": "Visitor #49", "date": "2020-06-15T03:58:00+00:00"}, {
-            "id": 89,
-            "name": "Visitor #49",
-            "date": "2020-06-13T11:56:16+00:00"
-        }, {"id": 18, "name": "Visitor #49", "date": "2020-06-11T18:08:00+00:00"}, {
-            "id": 7,
-            "name": "Visitor #5",
-            "date": "2020-06-15T23:34:14+00:00"
-        }, {"id": 149, "name": "Visitor #50", "date": "2020-06-12T14:29:09+00:00"}, {
-            "id": 121,
-            "name": "Visitor #50",
-            "date": "2020-06-15T21:42:13+00:00"
-        }, {"id": 94, "name": "Visitor #50", "date": "2020-06-24T20:11:30+00:00"}, {
-            "id": 77,
-            "name": "Visitor #50",
-            "date": "2020-06-22T02:41:12+00:00"
-        }, {"id": 31, "name": "Visitor #50", "date": "2020-06-25T19:31:27+00:00"}, {
-            "id": 13,
-            "name": "Visitor #50",
-            "date": "2020-06-18T03:24:54+00:00"
-        }, {"id": 128, "name": "Visitor #51", "date": "2020-06-21T14:35:02+00:00"}, {
-            "id": 33,
-            "name": "Visitor #51",
-            "date": "2020-06-23T19:56:24+00:00"
-        }, {"id": 106, "name": "Visitor #52", "date": "2020-06-16T08:45:15+00:00"}]
-    }
-}, {
-    "success": true, "page": 7, "value": {
-        "total": 150,
-        "data": [{"id": 108, "name": "Visitor #53", "date": "2020-06-20T06:28:25+00:00"}, {
-            "id": 144,
-            "name": "Visitor #54",
-            "date": "2020-06-24T15:12:50+00:00"
-        }, {"id": 111, "name": "Visitor #54", "date": "2020-06-20T17:47:57+00:00"}, {
-            "id": 63,
-            "name": "Visitor #54",
-            "date": "2020-06-11T06:53:53+00:00"
-        }, {"id": 44, "name": "Visitor #57", "date": "2020-06-13T08:10:40+00:00"}, {
-            "id": 97,
-            "name": "Visitor #58",
-            "date": "2020-06-22T12:12:45+00:00"
-        }, {"id": 27, "name": "Visitor #58", "date": "2020-06-11T13:35:49+00:00"}, {
-            "id": 90,
-            "name": "Visitor #59",
-            "date": "2020-06-25T16:28:27+00:00"
-        }, {"id": 73, "name": "Visitor #59", "date": "2020-06-16T12:00:25+00:00"}, {
-            "id": 59,
-            "name": "Visitor #59",
-            "date": "2020-06-24T20:46:19+00:00"
-        }, {"id": 0, "name": "Visitor #59", "date": "2020-06-15T04:41:28+00:00"}, {
-            "id": 82,
-            "name": "Visitor #6",
-            "date": "2020-06-20T01:44:04+00:00"
-        }, {"id": 25, "name": "Visitor #6", "date": "2020-06-19T15:38:58+00:00"}, {
-            "id": 133,
-            "name": "Visitor #60",
-            "date": "2020-06-17T23:45:21+00:00"
-        }, {"id": 58, "name": "Visitor #60", "date": "2020-06-13T09:31:24+00:00"}]
-    }
-}, {
-    "success": true, "page": 8, "value": {
-        "total": 150,
-        "data": [{"id": 2, "name": "Visitor #60", "date": "2020-06-23T06:27:55+00:00"}, {
-            "id": 142,
-            "name": "Visitor #61",
-            "date": "2020-06-13T16:53:06+00:00"
-        }, {"id": 125, "name": "Visitor #61", "date": "2020-06-20T14:39:28+00:00"}, {
-            "id": 98,
-            "name": "Visitor #61",
-            "date": "2020-06-20T09:21:39+00:00"
-        }, {"id": 6, "name": "Visitor #61", "date": "2020-06-22T23:46:14+00:00"}, {
-            "id": 83,
-            "name": "Visitor #62",
-            "date": "2020-06-11T06:00:09+00:00"
-        }, {"id": 24, "name": "Visitor #62", "date": "2020-06-25T07:47:51+00:00"}, {
-            "id": 76,
-            "name": "Visitor #63",
-            "date": "2020-06-10T21:19:15+00:00"
-        }, {"id": 57, "name": "Visitor #63", "date": "2020-06-20T12:22:24+00:00"}, {
-            "id": 56,
-            "name": "Visitor #63",
-            "date": "2020-06-17T11:57:21+00:00"
-        }, {"id": 54, "name": "Visitor #63", "date": "2020-06-12T13:22:23+00:00"}, {
-            "id": 78,
-            "name": "Visitor #64",
-            "date": "2020-06-23T17:40:57+00:00"
-        }, {"id": 74, "name": "Visitor #64", "date": "2020-06-25T01:07:29+00:00"}, {
-            "id": 110,
-            "name": "Visitor #65",
-            "date": "2020-06-15T23:11:46+00:00"
-        }, {"id": 130, "name": "Visitor #66", "date": "2020-06-19T02:13:04+00:00"}]
-    }
-}, {
-    "success": true, "page": 9, "value": {
-        "total": 150,
-        "data": [{"id": 28, "name": "Visitor #66", "date": "2020-06-18T20:48:56+00:00"}, {
-            "id": 120,
-            "name": "Visitor #67",
-            "date": "2020-06-17T04:57:14+00:00"
-        }, {"id": 87, "name": "Visitor #67", "date": "2020-06-20T07:35:07+00:00"}, {
-            "id": 72,
-            "name": "Visitor #67",
-            "date": "2020-06-24T17:58:54+00:00"
-        }, {"id": 70, "name": "Visitor #67", "date": "2020-06-16T08:51:58+00:00"}, {
-            "id": 146,
-            "name": "Visitor #68",
-            "date": "2020-06-11T11:25:31+00:00"
-        }, {"id": 145, "name": "Visitor #68", "date": "2020-06-11T22:03:03+00:00"}, {
-            "id": 123,
-            "name": "Visitor #68",
-            "date": "2020-06-11T19:42:46+00:00"
-        }, {"id": 11, "name": "Visitor #68", "date": "2020-06-20T09:13:16+00:00"}, {
-            "id": 148,
-            "name": "Visitor #69",
-            "date": "2020-06-16T08:54:46+00:00"
-        }, {"id": 36, "name": "Visitor #69", "date": "2020-06-25T12:43:58+00:00"}, {
-            "id": 137,
-            "name": "Visitor #7",
-            "date": "2020-06-18T02:17:24+00:00"
-        }, {"id": 62, "name": "Visitor #7", "date": "2020-06-24T06:37:54+00:00"}, {
-            "id": 23,
-            "name": "Visitor #7",
-            "date": "2020-06-22T03:30:17+00:00"
-        }, {"id": 81, "name": "Visitor #70", "date": "2020-06-23T01:22:39+00:00"}]
-    }
-}, {
-    "success": true, "page": 10, "value": {
-        "total": 150,
-        "data": [{"id": 107, "name": "Visitor #71", "date": "2020-06-13T23:52:23+00:00"}, {
-            "id": 92,
-            "name": "Visitor #71",
-            "date": "2020-06-23T00:33:32+00:00"
-        }, {"id": 61, "name": "Visitor #71", "date": "2020-06-12T13:14:03+00:00"}, {
-            "id": 47,
-            "name": "Visitor #71",
-            "date": "2020-06-20T22:42:23+00:00"
-        }, {"id": 38, "name": "Visitor #71", "date": "2020-06-15T18:52:21+00:00"}, {
-            "id": 29,
-            "name": "Visitor #71",
-            "date": "2020-06-22T18:56:38+00:00"
-        }, {"id": 91, "name": "Visitor #72", "date": "2020-06-15T06:23:09+00:00"}, {
-            "id": 141,
-            "name": "Visitor #73",
-            "date": "2020-06-19T19:15:04+00:00"
-        }, {"id": 135, "name": "Visitor #73", "date": "2020-06-17T03:23:08+00:00"}, {
-            "id": 132,
-            "name": "Visitor #73",
-            "date": "2020-06-18T17:09:38+00:00"
-        }, {"id": 88, "name": "Visitor #73", "date": "2020-06-19T02:58:52+00:00"}, {
-            "id": 49,
-            "name": "Visitor #74",
-            "date": "2020-06-20T08:53:50+00:00"
-        }, {"id": 32, "name": "Visitor #8", "date": "2020-06-18T03:54:39+00:00"}, {
-            "id": 85,
-            "name": "Visitor #9",
-            "date": "2020-06-15T16:13:37+00:00"
-        }, {"id": 41, "name": "Visitor #9", "date": "2020-06-23T10:52:01+00:00"}]
-    }
-}];
-
-const debugDataChanged1FirstPageResponse =
-  {"success":true,"page":1,"value":{"total":150,"data":[{"id":0,"name":"Visitor #0","date":"2020-06-30T19:52:14+00:00"},{"id":1,"name":"Visitor #1","date":"2020-06-29T13:57:45+00:00"},{"id":10,"name":"Visitor #10","date":"2020-06-30T11:17:00+00:00"},{"id":100,"name":"Visitor #100","date":"2020-06-24T15:12:25+00:00"},{"id":101,"name":"Visitor #101","date":"2020-07-05T15:12:26+00:00"},{"id":102,"name":"Visitor #102","date":"2020-06-27T16:45:32+00:00"},{"id":103,"name":"Visitor #103","date":"2020-06-25T00:08:23+00:00"},{"id":104,"name":"Visitor #104","date":"2020-07-04T07:25:39+00:00"},{"id":105,"name":"Visitor #105","date":"2020-07-01T17:02:59+00:00"},{"id":106,"name":"Visitor #106","date":"2020-06-22T07:31:10+00:00"},{"id":107,"name":"Visitor #107","date":"2020-06-22T13:22:39+00:00"},{"id":108,"name":"Visitor #108","date":"2020-06-21T09:56:55+00:00"},{"id":109,"name":"Visitor #109","date":"2020-06-23T19:15:58+00:00"},{"id":11,"name":"Visitor #11","date":"2020-06-22T10:22:41+00:00"},{"id":110,"name":"Visitor #110","date":"2020-06-26T04:35:43+00:00"}]}}
-// const debugDataChanged1FirstPageResponse =
-//   {"success":true,"page":1,"value":{"total":150,"data":[{"id":0,"name":"Visitor #0","date":"2020-06-30T19:52:14+00:00"},{"id":1,"name":"Visitor #1","date":"2020-06-29T13:57:45+00:00"},{"id":10,"name":"Visitor #10","date":"2020-06-30T11:17:00+00:00"},{"id":100,"name":"Visitor #100","date":"2020-06-24T15:12:25+00:00"},{"id":101,"name":"Visitor #101","date":"2020-07-05T15:12:26+00:00"},{"id":102,"name":"Visitor #102","date":"2020-06-27T16:45:32+00:00"},{"id":103,"name":"Visitor #103","date":"2020-06-25T00:08:23+00:00"},{"id":104,"name":"Visitor #104","date":"2020-07-04T07:25:39+00:00"},{"id":105,"name":"Visitor #105","date":"2020-07-01T17:02:59+00:00"},{"id":106,"name":"Visitor #106","date":"2020-06-22T07:31:10+00:00"},{"id":107,"name":"Visitor #107","date":"2020-06-22T13:22:39+00:00"},{"id":108,"name":"Visitor #108","date":"2020-06-21T09:56:55+00:00"},{"id":109,"name":"Visitor #109","date":"2020-06-23T19:15:58+00:00"},{"id":11,"name":"Visitor #11","date":"2020-06-22T10:22:41+00:00"},{"id":110,"name":"Visitor #110","date":"2020-06-26T04:35:43+00:00"}]}};
-
-const debugDataChanged1UnreadPageResponses =
-  [{"success":true,"page":2,"value":{"total":152,"data":[{"id":110,"name":"Visitor #110","date":"2020-06-26T04:35:43+00:00"},{"id":111,"name":"Visitor #111","date":"2020-06-21T10:28:21+00:00"},{"id":112,"name":"Visitor #112","date":"2020-07-04T04:20:01+00:00"},{"id":113,"name":"Visitor #113","date":"2020-06-24T18:02:47+00:00"},{"id":114,"name":"Visitor #114","date":"2020-06-30T20:54:43+00:00"},{"id":115,"name":"Visitor #115","date":"2020-07-04T06:09:32+00:00"},{"id":150,"date":"2020-07-06T15:32:51.938Z","name":"Visitor #116"},{"id":116,"name":"Visitor #116","date":"2020-06-29T20:33:56+00:00"},{"id":117,"name":"Visitor #117","date":"2020-07-05T17:18:52+00:00"},{"id":118,"name":"Visitor #118","date":"2020-07-02T20:51:43+00:00"},{"id":119,"name":"Visitor #119","date":"2020-07-04T21:41:11+00:00"},{"id":12,"name":"Visitor #12","date":"2020-07-02T10:49:56+00:00"},{"id":120,"name":"Visitor #120","date":"2020-06-29T18:47:24+00:00"},{"id":121,"name":"Visitor #121","date":"2020-07-01T04:12:33+00:00"},{"id":122,"name":"Visitor #122","date":"2020-07-04T20:57:23+00:00"}]}},{"success":true,"page":3,"value":{"total":153,"data":[{"id":125,"name":"Visitor #125","date":"2020-06-27T12:01:46+00:00"},{"id":126,"name":"Visitor #126","date":"2020-06-30T22:24:29+00:00"},{"id":127,"name":"Visitor #127","date":"2020-06-25T17:04:15+00:00"},{"id":128,"name":"Visitor #128","date":"2020-06-25T16:52:00+00:00"},{"id":129,"name":"Visitor #129","date":"2020-06-26T09:13:36+00:00"},{"id":13,"name":"Visitor #13","date":"2020-07-02T13:50:42+00:00"},{"id":130,"name":"Visitor #130","date":"2020-06-25T14:24:28+00:00"},{"id":131,"name":"Visitor #131","date":"2020-07-01T13:54:43+00:00"},{"id":132,"name":"Visitor #132","date":"2020-06-21T03:56:52+00:00"},{"id":133,"name":"Visitor #133","date":"2020-06-28T05:37:56+00:00"},{"id":134,"name":"Visitor #134","date":"2020-06-27T19:35:19+00:00"},{"id":135,"name":"Visitor #135","date":"2020-07-01T17:54:35+00:00"},{"id":136,"name":"Visitor #136","date":"2020-06-29T09:32:30+00:00"},{"id":137,"name":"Visitor #137","date":"2020-06-26T12:28:16+00:00"},{"id":138,"name":"Visitor #138","date":"2020-07-03T09:56:32+00:00"}]}},{"success":true,"page":4,"value":{"total":154,"data":[{"id":138,"name":"Visitor #138","date":"2020-07-03T09:56:32+00:00"},{"id":139,"name":"Visitor #139","date":"2020-07-01T02:57:41+00:00"},{"id":14,"name":"Visitor #14","date":"2020-07-04T15:50:53+00:00"},{"id":140,"name":"Visitor #140","date":"2020-06-25T09:05:51+00:00"},{"id":141,"name":"Visitor #141","date":"2020-07-03T21:23:04+00:00"},{"id":142,"name":"Visitor #142","date":"2020-07-03T01:23:15+00:00"},{"id":143,"name":"Visitor #143","date":"2020-06-27T02:56:23+00:00"},{"id":144,"name":"Visitor #144","date":"2020-07-04T09:39:41+00:00"},{"id":145,"name":"Visitor #145","date":"2020-06-25T16:21:02+00:00"},{"id":146,"name":"Visitor #146","date":"2020-06-21T16:09:59+00:00"},{"id":147,"name":"Visitor #147","date":"2020-07-04T02:11:47+00:00"},{"id":148,"name":"Visitor #148","date":"2020-06-22T09:45:51+00:00"},{"id":149,"name":"Visitor #149","date":"2020-06-26T00:21:46+00:00"},{"id":153,"date":"2020-07-06T15:32:51.941Z","name":"Visitor #15"},{"id":15,"name":"Visitor #15","date":"2020-06-21T21:09:20+00:00"}]}},{"success":true,"page":5,"value":{"total":157,"data":[{"id":18,"name":"Visitor #18","date":"2020-06-29T09:44:47+00:00"},{"id":19,"name":"Visitor #19","date":"2020-06-28T10:57:59+00:00"},{"id":150,"date":"2020-07-06T15:32:51.961Z","name":"Visitor #2"},{"id":2,"name":"Visitor #2","date":"2020-06-22T02:19:54+00:00"},{"id":20,"name":"Visitor #20","date":"2020-07-03T22:26:35+00:00"},{"id":21,"name":"Visitor #21","date":"2020-06-23T04:36:17+00:00"},{"id":22,"name":"Visitor #22","date":"2020-07-01T00:22:20+00:00"},{"id":23,"name":"Visitor #23","date":"2020-07-03T20:48:51+00:00"},{"id":24,"name":"Visitor #24","date":"2020-06-30T07:14:14+00:00"},{"id":25,"name":"Visitor #25","date":"2020-06-21T17:55:45+00:00"},{"id":26,"name":"Visitor #26","date":"2020-06-29T07:09:50+00:00"},{"id":27,"name":"Visitor #27","date":"2020-06-27T13:53:37+00:00"},{"id":28,"name":"Visitor #28","date":"2020-07-02T12:31:29+00:00"},{"id":29,"name":"Visitor #29","date":"2020-06-23T23:45:56+00:00"},{"id":3,"name":"Visitor #3","date":"2020-06-29T15:20:03+00:00"}]}},{"success":true,"page":6,"value":{"total":158,"data":[{"id":25,"name":"Visitor #25","date":"2020-06-21T17:55:45+00:00"},{"id":26,"name":"Visitor #26","date":"2020-06-29T07:09:50+00:00"},{"id":150,"date":"2020-07-06T15:32:51.962Z","name":"Visitor #27"},{"id":27,"name":"Visitor #27","date":"2020-06-27T13:53:37+00:00"},{"id":28,"name":"Visitor #28","date":"2020-07-02T12:31:29+00:00"},{"id":29,"name":"Visitor #29","date":"2020-06-23T23:45:56+00:00"},{"id":3,"name":"Visitor #3","date":"2020-06-29T15:20:03+00:00"},{"id":30,"name":"Visitor #30","date":"2020-06-26T21:36:44+00:00"},{"id":31,"name":"Visitor #31","date":"2020-07-02T17:04:13+00:00"},{"id":32,"name":"Visitor #32","date":"2020-06-23T15:43:01+00:00"},{"id":33,"name":"Visitor #33","date":"2020-06-25T10:47:49+00:00"},{"id":34,"name":"Visitor #34","date":"2020-07-05T09:44:48+00:00"},{"id":35,"name":"Visitor #35","date":"2020-07-01T01:47:12+00:00"},{"id":36,"name":"Visitor #36","date":"2020-06-26T03:06:35+00:00"},{"id":37,"name":"Visitor #37","date":"2020-07-01T20:07:18+00:00"}]}},{"success":true,"page":7,"value":{"total":155,"data":[{"id":41,"name":"Visitor #41","date":"2020-06-22T13:30:36+00:00"},{"id":42,"name":"Visitor #42","date":"2020-06-21T04:56:00+00:00"},{"id":43,"name":"Visitor #43","date":"2020-07-01T16:12:10+00:00"},{"id":44,"name":"Visitor #44","date":"2020-06-29T03:58:33+00:00"},{"id":45,"name":"Visitor #45","date":"2020-06-28T18:10:04+00:00"},{"id":46,"name":"Visitor #46","date":"2020-06-25T18:12:47+00:00"},{"id":47,"name":"Visitor #47","date":"2020-07-02T07:37:12+00:00"},{"id":48,"name":"Visitor #48","date":"2020-06-23T00:48:20+00:00"},{"id":49,"name":"Visitor #49","date":"2020-06-26T07:05:58+00:00"},{"id":5,"name":"Visitor #5","date":"2020-06-28T22:45:05+00:00"},{"id":50,"name":"Visitor #50","date":"2020-07-03T12:27:57+00:00"},{"id":51,"name":"Visitor #51","date":"2020-06-26T20:30:05+00:00"},{"id":52,"name":"Visitor #52","date":"2020-06-23T19:18:31+00:00"},{"id":53,"name":"Visitor #53","date":"2020-07-03T14:08:45+00:00"},{"id":54,"name":"Visitor #54","date":"2020-07-02T17:51:14+00:00"}]}},{"success":true,"page":8,"value":{"total":156,"data":[{"id":56,"name":"Visitor #56","date":"2020-07-04T12:17:00+00:00"},{"id":57,"name":"Visitor #57","date":"2020-07-03T16:15:02+00:00"},{"id":58,"name":"Visitor #58","date":"2020-07-01T10:47:46+00:00"},{"id":154,"date":"2020-07-06T15:32:51.960Z","name":"Visitor #59"},{"id":59,"name":"Visitor #59","date":"2020-06-24T16:47:56+00:00"},{"id":6,"name":"Visitor #6","date":"2020-07-01T03:12:52+00:00"},{"id":60,"name":"Visitor #60","date":"2020-06-22T03:04:36+00:00"},{"id":61,"name":"Visitor #61","date":"2020-06-23T04:25:41+00:00"},{"id":62,"name":"Visitor #62","date":"2020-06-29T18:51:43+00:00"},{"id":63,"name":"Visitor #63","date":"2020-06-26T13:22:47+00:00"},{"id":64,"name":"Visitor #64","date":"2020-06-23T20:31:39+00:00"},{"id":65,"name":"Visitor #65","date":"2020-06-25T07:20:24+00:00"},{"id":66,"name":"Visitor #66","date":"2020-06-29T21:35:30+00:00"},{"id":67,"name":"Visitor #67","date":"2020-06-26T08:07:47+00:00"},{"id":68,"name":"Visitor #68","date":"2020-07-05T04:44:08+00:00"}]}},{"success":true,"page":9,"value":{"total":159,"data":[{"id":65,"name":"Visitor #65","date":"2020-06-25T07:20:24+00:00"},{"id":66,"name":"Visitor #66","date":"2020-06-29T21:35:30+00:00"},{"id":67,"name":"Visitor #67","date":"2020-06-26T08:07:47+00:00"},{"id":68,"name":"Visitor #68","date":"2020-07-05T04:44:08+00:00"},{"id":69,"name":"Visitor #69","date":"2020-06-30T21:51:39+00:00"},{"id":7,"name":"Visitor #7","date":"2020-07-04T04:33:01+00:00"},{"id":70,"name":"Visitor #70","date":"2020-06-28T04:25:58+00:00"},{"id":71,"name":"Visitor #71","date":"2020-07-02T18:57:30+00:00"},{"id":72,"name":"Visitor #72","date":"2020-07-04T17:48:21+00:00"},{"id":73,"name":"Visitor #73","date":"2020-07-02T14:34:40+00:00"},{"id":74,"name":"Visitor #74","date":"2020-06-28T03:42:24+00:00"},{"id":75,"name":"Visitor #75","date":"2020-06-26T23:59:39+00:00"},{"id":76,"name":"Visitor #76","date":"2020-06-21T10:46:14+00:00"},{"id":77,"name":"Visitor #77","date":"2020-06-28T11:44:51+00:00"},{"id":78,"name":"Visitor #78","date":"2020-06-23T06:34:37+00:00"}]}},{"success":true,"page":10,"value":{"total":151,"data":[{"id":85,"name":"Visitor #85","date":"2020-07-05T07:30:23+00:00"},{"id":86,"name":"Visitor #86","date":"2020-06-26T14:40:46+00:00"},{"id":87,"name":"Visitor #87","date":"2020-07-05T04:19:43+00:00"},{"id":88,"name":"Visitor #88","date":"2020-07-02T02:20:47+00:00"},{"id":89,"name":"Visitor #89","date":"2020-06-24T21:43:47+00:00"},{"id":9,"name":"Visitor #9","date":"2020-06-29T13:41:22+00:00"},{"id":90,"name":"Visitor #90","date":"2020-07-02T11:10:46+00:00"},{"id":91,"name":"Visitor #91","date":"2020-06-22T03:13:49+00:00"},{"id":92,"name":"Visitor #92","date":"2020-07-03T17:45:51+00:00"},{"id":93,"name":"Visitor #93","date":"2020-07-05T07:44:21+00:00"},{"id":94,"name":"Visitor #94","date":"2020-07-05T13:33:07+00:00"},{"id":95,"name":"Visitor #95","date":"2020-07-01T12:01:40+00:00"},{"id":96,"name":"Visitor #96","date":"2020-07-04T19:57:04+00:00"},{"id":97,"name":"Visitor #97","date":"2020-06-23T11:58:12+00:00"},{"id":98,"name":"Visitor #98","date":"2020-06-23T00:52:35+00:00"}]}}];
-// const debugDataChanged1UnreadPageResponses =
-//   [{"success":true,"page":2,"value":{"total":151,"data":[{"id":110,"name":"Visitor #110","date":"2020-06-26T04:35:43+00:00"},{"id":111,"name":"Visitor #111","date":"2020-06-21T10:28:21+00:00"},{"id":112,"name":"Visitor #112","date":"2020-07-04T04:20:01+00:00"},{"id":113,"name":"Visitor #113","date":"2020-06-24T18:02:47+00:00"},{"id":114,"name":"Visitor #114","date":"2020-06-30T20:54:43+00:00"},{"id":115,"name":"Visitor #115","date":"2020-07-04T06:09:32+00:00"},{"id":116,"name":"Visitor #116","date":"2020-06-29T20:33:56+00:00"},{"id":117,"name":"Visitor #117","date":"2020-07-05T17:18:52+00:00"},{"id":118,"name":"Visitor #118","date":"2020-07-02T20:51:43+00:00"},{"id":119,"name":"Visitor #119","date":"2020-07-04T21:41:11+00:00"},{"id":12,"name":"Visitor #12","date":"2020-07-02T10:49:56+00:00"},{"id":120,"name":"Visitor #120","date":"2020-06-29T18:47:24+00:00"},{"id":121,"name":"Visitor #121","date":"2020-07-01T04:12:33+00:00"},{"id":122,"name":"Visitor #122","date":"2020-07-04T20:57:23+00:00"},{"id":123,"name":"Visitor #123","date":"2020-06-22T07:19:08+00:00"}]}},{"success":true,"page":3,"value":{"total":153,"data":[{"id":125,"name":"Visitor #125","date":"2020-06-27T12:01:46+00:00"},{"id":126,"name":"Visitor #126","date":"2020-06-30T22:24:29+00:00"},{"id":127,"name":"Visitor #127","date":"2020-06-25T17:04:15+00:00"},{"id":128,"name":"Visitor #128","date":"2020-06-25T16:52:00+00:00"},{"id":129,"name":"Visitor #129","date":"2020-06-26T09:13:36+00:00"},{"id":13,"name":"Visitor #13","date":"2020-07-02T13:50:42+00:00"},{"id":130,"name":"Visitor #130","date":"2020-06-25T14:24:28+00:00"},{"id":131,"name":"Visitor #131","date":"2020-07-01T13:54:43+00:00"},{"id":132,"name":"Visitor #132","date":"2020-06-21T03:56:52+00:00"},{"id":133,"name":"Visitor #133","date":"2020-06-28T05:37:56+00:00"},{"id":134,"name":"Visitor #134","date":"2020-06-27T19:35:19+00:00"},{"id":135,"name":"Visitor #135","date":"2020-07-01T17:54:35+00:00"},{"id":136,"name":"Visitor #136","date":"2020-06-29T09:32:30+00:00"},{"id":137,"name":"Visitor #137","date":"2020-06-26T12:28:16+00:00"},{"id":138,"name":"Visitor #138","date":"2020-07-03T09:56:32+00:00"}]}},{"success":true,"page":4,"value":{"total":157,"data":[{"id":137,"name":"Visitor #137","date":"2020-06-26T12:28:16+00:00"},{"id":138,"name":"Visitor #138","date":"2020-07-03T09:56:32+00:00"},{"id":139,"name":"Visitor #139","date":"2020-07-01T02:57:41+00:00"},{"id":151,"date":"2020-07-06T14:15:10.757Z","name":"Visitor #14"},{"id":14,"name":"Visitor #14","date":"2020-07-04T15:50:53+00:00"},{"id":140,"name":"Visitor #140","date":"2020-06-25T09:05:51+00:00"},{"id":141,"name":"Visitor #141","date":"2020-07-03T21:23:04+00:00"},{"id":142,"name":"Visitor #142","date":"2020-07-03T01:23:15+00:00"},{"id":143,"name":"Visitor #143","date":"2020-06-27T02:56:23+00:00"},{"id":144,"name":"Visitor #144","date":"2020-07-04T09:39:41+00:00"},{"id":145,"name":"Visitor #145","date":"2020-06-25T16:21:02+00:00"},{"id":146,"name":"Visitor #146","date":"2020-06-21T16:09:59+00:00"},{"id":147,"name":"Visitor #147","date":"2020-07-04T02:11:47+00:00"},{"id":148,"name":"Visitor #148","date":"2020-06-22T09:45:51+00:00"},{"id":149,"name":"Visitor #149","date":"2020-06-26T00:21:46+00:00"}]}},{"success":true,"page":5,"value":{"total":155,"data":[{"id":16,"name":"Visitor #16","date":"2020-06-26T17:34:03+00:00"},{"id":17,"name":"Visitor #17","date":"2020-07-03T03:45:05+00:00"},{"id":18,"name":"Visitor #18","date":"2020-06-29T09:44:47+00:00"},{"id":19,"name":"Visitor #19","date":"2020-06-28T10:57:59+00:00"},{"id":2,"name":"Visitor #2","date":"2020-06-22T02:19:54+00:00"},{"id":20,"name":"Visitor #20","date":"2020-07-03T22:26:35+00:00"},{"id":21,"name":"Visitor #21","date":"2020-06-23T04:36:17+00:00"},{"id":22,"name":"Visitor #22","date":"2020-07-01T00:22:20+00:00"},{"id":23,"name":"Visitor #23","date":"2020-07-03T20:48:51+00:00"},{"id":24,"name":"Visitor #24","date":"2020-06-30T07:14:14+00:00"},{"id":25,"name":"Visitor #25","date":"2020-06-21T17:55:45+00:00"},{"id":26,"name":"Visitor #26","date":"2020-06-29T07:09:50+00:00"},{"id":27,"name":"Visitor #27","date":"2020-06-27T13:53:37+00:00"},{"id":28,"name":"Visitor #28","date":"2020-07-02T12:31:29+00:00"},{"id":29,"name":"Visitor #29","date":"2020-06-23T23:45:56+00:00"}]}},{"success":true,"page":6,"value":{"total":156,"data":[{"id":29,"name":"Visitor #29","date":"2020-06-23T23:45:56+00:00"},{"id":3,"name":"Visitor #3","date":"2020-06-29T15:20:03+00:00"},{"id":30,"name":"Visitor #30","date":"2020-06-26T21:36:44+00:00"},{"id":31,"name":"Visitor #31","date":"2020-07-02T17:04:13+00:00"},{"id":32,"name":"Visitor #32","date":"2020-06-23T15:43:01+00:00"},{"id":33,"name":"Visitor #33","date":"2020-06-25T10:47:49+00:00"},{"id":34,"name":"Visitor #34","date":"2020-07-05T09:44:48+00:00"},{"id":35,"name":"Visitor #35","date":"2020-07-01T01:47:12+00:00"},{"id":36,"name":"Visitor #36","date":"2020-06-26T03:06:35+00:00"},{"id":37,"name":"Visitor #37","date":"2020-07-01T20:07:18+00:00"},{"id":38,"name":"Visitor #38","date":"2020-07-02T11:10:22+00:00"},{"id":39,"name":"Visitor #39","date":"2020-06-29T11:42:30+00:00"},{"id":4,"name":"Visitor #4","date":"2020-06-27T13:19:41+00:00"},{"id":40,"name":"Visitor #40","date":"2020-07-01T15:14:09+00:00"},{"id":154,"date":"2020-07-06T14:15:10.756Z","name":"Visitor #41"}]}},{"success":true,"page":7,"value":{"total":154,"data":[{"id":42,"name":"Visitor #42","date":"2020-06-21T04:56:00+00:00"},{"id":43,"name":"Visitor #43","date":"2020-07-01T16:12:10+00:00"},{"id":44,"name":"Visitor #44","date":"2020-06-29T03:58:33+00:00"},{"id":45,"name":"Visitor #45","date":"2020-06-28T18:10:04+00:00"},{"id":46,"name":"Visitor #46","date":"2020-06-25T18:12:47+00:00"},{"id":47,"name":"Visitor #47","date":"2020-07-02T07:37:12+00:00"},{"id":48,"name":"Visitor #48","date":"2020-06-23T00:48:20+00:00"},{"id":49,"name":"Visitor #49","date":"2020-06-26T07:05:58+00:00"},{"id":5,"name":"Visitor #5","date":"2020-06-28T22:45:05+00:00"},{"id":50,"name":"Visitor #50","date":"2020-07-03T12:27:57+00:00"},{"id":51,"name":"Visitor #51","date":"2020-06-26T20:30:05+00:00"},{"id":52,"name":"Visitor #52","date":"2020-06-23T19:18:31+00:00"},{"id":53,"name":"Visitor #53","date":"2020-07-03T14:08:45+00:00"},{"id":54,"name":"Visitor #54","date":"2020-07-02T17:51:14+00:00"},{"id":55,"name":"Visitor #55","date":"2020-06-30T13:25:37+00:00"}]}},{"success":true,"page":8,"value":{"total":152,"data":[{"id":58,"name":"Visitor #58","date":"2020-07-01T10:47:46+00:00"},{"id":59,"name":"Visitor #59","date":"2020-06-24T16:47:56+00:00"},{"id":6,"name":"Visitor #6","date":"2020-07-01T03:12:52+00:00"},{"id":60,"name":"Visitor #60","date":"2020-06-22T03:04:36+00:00"},{"id":61,"name":"Visitor #61","date":"2020-06-23T04:25:41+00:00"},{"id":62,"name":"Visitor #62","date":"2020-06-29T18:51:43+00:00"},{"id":63,"name":"Visitor #63","date":"2020-06-26T13:22:47+00:00"},{"id":64,"name":"Visitor #64","date":"2020-06-23T20:31:39+00:00"},{"id":65,"name":"Visitor #65","date":"2020-06-25T07:20:24+00:00"},{"id":66,"name":"Visitor #66","date":"2020-06-29T21:35:30+00:00"},{"id":67,"name":"Visitor #67","date":"2020-06-26T08:07:47+00:00"},{"id":68,"name":"Visitor #68","date":"2020-07-05T04:44:08+00:00"},{"id":69,"name":"Visitor #69","date":"2020-06-30T21:51:39+00:00"},{"id":7,"name":"Visitor #7","date":"2020-07-04T04:33:01+00:00"},{"id":70,"name":"Visitor #70","date":"2020-06-28T04:25:58+00:00"}]}},{"success":true,"page":9,"value":{"total":159,"data":[{"id":68,"name":"Visitor #68","date":"2020-07-05T04:44:08+00:00"},{"id":69,"name":"Visitor #69","date":"2020-06-30T21:51:39+00:00"},{"id":7,"name":"Visitor #7","date":"2020-07-04T04:33:01+00:00"},{"id":70,"name":"Visitor #70","date":"2020-06-28T04:25:58+00:00"},{"id":150,"date":"2020-07-06T14:15:10.759Z","name":"Visitor #71"},{"id":71,"name":"Visitor #71","date":"2020-07-02T18:57:30+00:00"},{"id":72,"name":"Visitor #72","date":"2020-07-04T17:48:21+00:00"},{"id":73,"name":"Visitor #73","date":"2020-07-02T14:34:40+00:00"},{"id":74,"name":"Visitor #74","date":"2020-06-28T03:42:24+00:00"},{"id":75,"name":"Visitor #75","date":"2020-06-26T23:59:39+00:00"},{"id":76,"name":"Visitor #76","date":"2020-06-21T10:46:14+00:00"},{"id":157,"date":"2020-07-06T14:15:10.759Z","name":"Visitor #77"},{"id":77,"name":"Visitor #77","date":"2020-06-28T11:44:51+00:00"},{"id":78,"name":"Visitor #78","date":"2020-06-23T06:34:37+00:00"},{"id":154,"date":"2020-07-06T14:15:10.759Z","name":"Visitor #79"}]}},{"success":true,"page":10,"value":{"total":158,"data":[{"id":80,"name":"Visitor #80","date":"2020-06-27T19:23:06+00:00"},{"id":81,"name":"Visitor #81","date":"2020-06-26T04:52:22+00:00"},{"id":82,"name":"Visitor #82","date":"2020-07-05T16:50:38+00:00"},{"id":83,"name":"Visitor #83","date":"2020-07-04T15:26:05+00:00"},{"id":84,"name":"Visitor #84","date":"2020-06-27T02:42:15+00:00"},{"id":85,"name":"Visitor #85","date":"2020-07-05T07:30:23+00:00"},{"id":86,"name":"Visitor #86","date":"2020-06-26T14:40:46+00:00"},{"id":87,"name":"Visitor #87","date":"2020-07-05T04:19:43+00:00"},{"id":88,"name":"Visitor #88","date":"2020-07-02T02:20:47+00:00"},{"id":89,"name":"Visitor #89","date":"2020-06-24T21:43:47+00:00"},{"id":9,"name":"Visitor #9","date":"2020-06-29T13:41:22+00:00"},{"id":90,"name":"Visitor #90","date":"2020-07-02T11:10:46+00:00"},{"id":91,"name":"Visitor #91","date":"2020-06-22T03:13:49+00:00"},{"id":92,"name":"Visitor #92","date":"2020-07-03T17:45:51+00:00"},{"id":151,"date":"2020-07-06T14:15:10.758Z","name":"Visitor #93"}]}}];
-
-const debugStartMoment =
-  '2020-07-06T15:32:45.276Z';
-// const debugStartMoment =
-//   '2020-07-06T14:26:20.107Z';
-const IS_DEBUG_ENABLED = false;
-// const IS_LOG_RESPONSES = IS_DEBUG_ENABLED ? true: false;
-const IS_LOG_RESPONSES = IS_DEBUG_ENABLED || true ? true: false;
+const IS_LOG_RESPONSES = true;
 
 const IS_DEBUG_FROM_DUMP = true;
 
-const DUMP_FILE_PATH = 'log_2020_7_9__17.6.25_';
-
-// Setup retry interceptor
-const interceptorId = rax.attach(); 
-
-
-//    {
-//      "token": "1234567890abcdef"
-//    }
-
-
-//
-//      {
-//        "data": [
-//          { "id": 1, "name": "Bill Murray", "date": "2018-09-02T09:11:00" },
-//          { "id": 2, "name": "John Doe", "date": "2018-08-30T03:24:00" },
-//        ],
-//        "total": 100
-//      }
-//
-
-
-const fakeResp1 = {
-  total: 150,
-  data: [
-    { id: 0, name: 'Visitor #0', date: '2020-06-14T14:02:14+00:00' },
-    { id: 1, name: 'Visitor #1', date: '2020-06-24T16:09:09+00:00' },
-    { id: 10, name: 'Visitor #10', date: '2020-06-16T08:06:24+00:00' },
-    {
-      id: 100,
-      name: 'Visitor #100',
-      date: '2020-06-15T21:55:13+00:00'
-    },
-    {
-      id: 101,
-      name: 'Visitor #101',
-      date: '2020-06-23T18:55:40+00:00'
-    },
-    {
-      id: 102,
-      name: 'Visitor #102',
-      date: '2020-06-14T01:59:05+00:00'
-    },
-    {
-      id: 103,
-      name: 'Visitor #103',
-      date: '2020-06-12T19:35:57+00:00'
-    },
-    {
-      id: 104,
-      name: 'Visitor #104',
-      date: '2020-06-18T14:41:57+00:00'
-    },
-    {
-      id: 105,
-      name: 'Visitor #105',
-      date: '2020-06-20T14:37:23+00:00'
-    },
-    {
-      id: 106,
-      name: 'Visitor #106',
-      date: '2020-06-16T14:12:14+00:00'
-    },
-    {
-      id: 107,
-      name: 'Visitor #107',
-      date: '2020-06-12T17:53:28+00:00'
-    },
-    {
-      id: 108,
-      name: 'Visitor #108',
-      date: '2020-06-16T13:35:55+00:00'
-    },
-    {
-      id: 109,
-      name: 'Visitor #109',
-      date: '2020-06-15T18:45:36+00:00'
-    },
-    { id: 11, name: 'Visitor #11', date: '2020-06-15T06:24:01+00:00' },
-    {
-      id: 110,
-      name: 'Visitor #110',
-      date: '2020-06-22T05:23:21+00:00'
-    }
-  ]
-}
-
-
+const DUMP_FILE_PATH = 'log_2020_7_9__16.54.27_';
 
 const fetchTokenFn = async () =>  {
     try {
@@ -474,15 +40,6 @@ const fetchTokenFn = async () =>  {
 const fetchUsers = async (page, token) =>  {
 
     try {
-        if (IS_DEBUG_ENABLED) {
-            if (page === 1 ) {
-                // return debugFirstPageResponse;
-                return debugDataChanged1FirstPageResponse;
-            } else {
-                // return debugUnreadPagesResponse[page-2];
-                return debugDataChanged1UnreadPageResponses[page-2];
-            }
-        }
         console.error('fu1');
         
         const url = LIST_URL_TEMPLATE(page, token);
@@ -1646,8 +1203,14 @@ const listUsers = async () => {
         }
 
         let startMoment = new Date();
-        if (IS_DEBUG_ENABLED) {
-            startMoment = new Date(debugStartMoment);
+
+        const fileReadDump = (label) => {
+            const path = 'logs/' + DUMP_FILE_PATH + label;
+            return fs.readFileSync(path);
+        };
+
+        if (IS_DEBUG_FROM_DUMP) {
+            startMoment = new Date(fileReadDump('startMoment'));
         }
 
         const fileLogger = (label, data) => {
@@ -1658,6 +1221,8 @@ const listUsers = async () => {
             const dateTimeStr = sm.getFullYear() + '_' + (sm.getMonth() + 1) + '_' + sm.getDate() +
               '__' + sm.getHours() + '.' + sm.getMinutes() + '.' + sm.getSeconds();
             const fileName = 'log_' + dateTimeStr + '_' + label;
+
+            //Store log uniq prefix to bootstrap debugFromDump using it in DUMP_FILE_PATH
             if (data === undefined && label === '') {
                 data = fileName;
             }
@@ -1665,13 +1230,10 @@ const listUsers = async () => {
             fs.writeFile('logs/' + fileName, data, () => {});
         };
 
-        const fileReadDump = (label) => {
-            const path = 'logs/' + DUMP_FILE_PATH + label;
-            return fs.readFileSync(path);
-        };
-
-        fileLogger('', undefined);
-        fileLogger('startMoment', startMoment);
+        if (!IS_DEBUG_FROM_DUMP) {
+            fileLogger('', undefined);
+            fileLogger('startMoment', startMoment);
+        }
 
         console.log('startMoment', startMoment);
         const startMomentUTCStartOfDateMilliseconds = getUTCStartOfDateMilliseconds(startMoment);
@@ -1760,14 +1322,16 @@ const listUsers = async () => {
         console.log('visits', visits);
         console.log(JSON.stringify(visits));
 
-        fileLogger('isDataChanged', JSON.stringify(isDataChanged));
-        fileLogger(
-          (
-              'visits_' + visits.length + '_of_[' + total + ']_' +
-              (isDataChanged ? 'dataIsNONStatic' : 'dataIsStatic' ) +
-              '.json'
-          ),
-          JSON.stringify(visits));
+        if (!IS_DEBUG_FROM_DUMP) {
+            fileLogger('isDataChanged', JSON.stringify(isDataChanged));
+            fileLogger(
+              (
+                'visits_' + visits.length + '_of_[' + total + ']_' +
+                (isDataChanged ? 'dataIsNONStatic' : 'dataIsStatic' ) +
+                '.json'
+              ),
+              JSON.stringify(visits));
+        }
         console.log('isDataChanged', isDataChanged);
 
     } catch (err) {
