@@ -1238,12 +1238,12 @@ const validateResults = (fileReadDump, fileLogger, isPastDayFn, total) => {
     let countedRecSet = {};
     correctRecsList.forEach(rec => {
         if (countedRecSet[rec.name] === undefined) {
-            countedRecSet[rec.name] = Object.assign({count: 1}, countedRecSet[rec.name]);
+            countedRecSet[rec.name] = Object.assign({count: 1}, rec);
         } else {
             countedRecSet[rec.name].count++;
         }
     });
-    fileLogger('validate_7_countedRecSet.json', JSON.stringify(correctRecsList));
+    fileLogger('validate_7_countedRecSet.json', JSON.stringify(countedRecSet));
 };
 
 const listUsers = async () => {
