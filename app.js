@@ -1,6 +1,8 @@
 const rax = require('retry-axios');
 const axios = require('axios');
 
+const fs = require('fs');
+
 const HOST_URL = 'https://motorway-challenge-api.herokuapp.com/api/login';
 const LIST_URL_TEMPLATE = (pageNo, token) => `https://motorway-challenge-api.herokuapp.com/api/visits?page=${pageNo}&token=${token}`;
 
@@ -361,6 +363,13 @@ const debugStartMoment =
 // const debugStartMoment =
 //   '2020-07-06T14:26:20.107Z';
 const IS_DEBUG_ENABLED = false;
+// const IS_LOG_RESPONSES = IS_DEBUG_ENABLED ? true: false;
+const IS_LOG_RESPONSES = IS_DEBUG_ENABLED || true ? true: false;
+
+const IS_DEBUG_FROM_DUMP = false;
+
+const DUMP_FILE_PATH = '';
+
 // Setup retry interceptor
 const interceptorId = rax.attach(); 
 
@@ -1344,12 +1353,15 @@ function coverMergedGapPositionsWithPageIds(mergedGapPositions, recordsPerPage) 
  *      5) fetch page without overlap, they "can" contain missed "original records"
  *      6) repeat 5) until count of found "true original records" is equal to "originalTotal"
  *
+ *
  * @param firstPageResponse
  * @param otherPagesResponses
  * @param pageIdListFetchFn
  * @param isStringDatePastFn
  * @param recordsPerPage
- * @returns {{}}
+ * @param fileLogger
+ * @param fileReadDump
+ * @returns {Promise<*[]|*>}
  */
 async function fetchMissedRecords (
     firstPageResponse,
@@ -1357,6 +1369,8 @@ async function fetchMissedRecords (
     pageIdListFetchFn,
     isStringDatePastFn,
     recordsPerPage,
+    fileLogger,
+    fileReadDump,
 ) {
 
     // trueRecords === records we should receive for fetching all pages if no new records would be inserted
@@ -1373,7 +1387,15 @@ async function fetchMissedRecords (
         const tailPagesIds = calcTailPageIds(maxKnownTotal, trueRecordsCount, recordsPerPage);
         console.log("const tailPagesIds = calcTailPageIds(maxKnownTotal, trueRecordsCount, recordsPerPage); tailPagesIds === ", tailPagesIds);
         // throw "TAIL";
-        const tailPagesResponses = await pageIdListFetchFn(tailPagesIds);
+        let tailPagesResponses = await pageIdListFetchFn(tailPagesIds);
+        // const tailPagesResponses = await pageIdListFetchFn(tailPagesIds);
+
+        if (IS_DEBUG_FROM_DUMP) {
+            tailPagesResponses = JSON.parse(fileReadDump('unreadPagesResponses.json'));
+        } else {
+            fileLogger('tailPagesResponses.json', JSON.stringify(tailPagesResponses));
+        }
+
 
         console.error('tailPagesResponses a1 JSON STRINGIFY', JSON.stringify(tailPagesResponses) );
         console.error('tailPagesResponses a1', (tailPagesResponses) );
@@ -1500,7 +1522,14 @@ async function fetchMissedRecords (
 
             // console.log(`Page Ids list is : [${pageIdsToFetch.join(',')}].`);
 
+            // const missedPageResponses = await pageIdListFetchFn(pageIdsToFetch);
             let missedPageResponses = await pageIdListFetchFn(pageIdsToFetch);
+
+            if (IS_DEBUG_FROM_DUMP) {
+                missedPageResponses = JSON.parse(fileReadDump('missedPageResponses.json'));
+            } else {
+                fileLogger('missedPageResponses.json', JSON.stringify(missedPageResponses));
+            }
 
             console.error('missedPageResponses a1 JSON STRINGIFY', JSON.stringify(missedPageResponses) );
             console.error('missedPageResponses a1', (missedPageResponses) );
@@ -1618,6 +1647,30 @@ const listUsers = async () => {
         if (IS_DEBUG_ENABLED) {
             startMoment = new Date(debugStartMoment);
         }
+
+        const fileLogger = (label, data) => {
+            if (!IS_LOG_RESPONSES) {
+                return;
+            }
+            const sm = startMoment;
+            const dateTimeStr = sm.getFullYear() + '_' + (sm.getMonth() + 1) + '_' + sm.getDate() +
+              '__' + sm.getHours() + '.' + sm.getMinutes() + '.' + sm.getSeconds();
+            const fileName = 'log_' + dateTimeStr + '_' + label;
+            if (data === undefined && label === '') {
+                data = fileName;
+            }
+
+            fs.writeFile('logs/' + fileName, data, () => {});
+        };
+
+        const fileReadDump = (label) => {
+            const path = 'logs/' + DUMP_FILE_PATH + label;
+            return fs.readFileSync(path);
+        };
+
+        fileLogger('', undefined);
+        fileLogger('startMoment', startMoment);
+
         console.log('startMoment', startMoment);
         const startMomentUTCStartOfDateMilliseconds = getUTCStartOfDateMilliseconds(startMoment);
         const isPastDayFn = (date) => getUTCStartOfDateMilliseconds(date) < startMomentUTCStartOfDateMilliseconds;
@@ -1626,8 +1679,14 @@ const listUsers = async () => {
 
         const pageIdListFetchFn = pageIdListFetchFnFactory(pageFetcherFn);
 
-        const firstPageResponse = await pageFetcherFn(1);
+        let firstPageResponse = await pageFetcherFn(1);
+        // const firstPageResponse = await pageFetcherFn(1);
 
+        if (IS_DEBUG_FROM_DUMP) {
+            firstPageResponse = fileReadDump('firstPageResponse.json');
+        } else {
+            fileLogger('firstPageResponse.json', JSON.stringify(firstPageResponse));
+        }
         const { success, page, value: firstPageValue } = firstPageResponse;
         if (success === false) {
             console.error('Error: First Page request failed');
@@ -1650,7 +1709,16 @@ const listUsers = async () => {
         
         console.error('unreadPageIds', unreadPageIds);
 
-        const unreadPagesResponses = await pageIdListFetchFn(unreadPageIds);
+        let unreadPagesResponses = await pageIdListFetchFn(unreadPageIds);
+        // const unreadPagesResponses = await pageIdListFetchFn(unreadPageIds);
+
+        if (IS_DEBUG_FROM_DUMP) {
+            unreadPagesResponses = fileReadDump('unreadPagesResponses.json');
+        } else {
+            fileLogger('unreadPagesResponses.json', JSON.stringify(unreadPagesResponses));
+        }
+
+        // fs.writeFile(filename, data, [encoding], [callback])
 
         console.error('firstPageResponse a1 JSON STRINGIFY', JSON.stringify(firstPageResponse) );
         console.error('firstPageResponse a1', (firstPageResponse) );
@@ -1676,7 +1744,9 @@ const listUsers = async () => {
                 unreadPagesResponses,
                 pageIdListFetchFn,
                 isStringDatePastFn,
-                recordsPerPage
+                recordsPerPage,
+                fileLogger,
+                fileReadDump,
             );
         }
 
@@ -1687,6 +1757,14 @@ const listUsers = async () => {
         console.log('visits', visits);
         console.log(JSON.stringify(visits));
 
+        fileLogger('isDataChanged', JSON.stringify(isDataChanged));
+        fileLogger(
+          (
+              'visits_' + visits.length + '_of_[' + total + ']_' +
+              (isDataChanged ? 'dataIsNONStatic' : 'dataIsStatic' ) +
+              '.json'
+          ),
+          JSON.stringify(visits));
         console.log('isDataChanged', isDataChanged);
 
     } catch (err) {
