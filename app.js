@@ -366,9 +366,9 @@ const IS_DEBUG_ENABLED = false;
 // const IS_LOG_RESPONSES = IS_DEBUG_ENABLED ? true: false;
 const IS_LOG_RESPONSES = IS_DEBUG_ENABLED || true ? true: false;
 
-const IS_DEBUG_FROM_DUMP = false;
+const IS_DEBUG_FROM_DUMP = true;
 
-const DUMP_FILE_PATH = '';
+const DUMP_FILE_PATH = 'log_2020_7_9__17.6.25_';
 
 // Setup retry interceptor
 const interceptorId = rax.attach(); 
@@ -1387,12 +1387,13 @@ async function fetchMissedRecords (
         const tailPagesIds = calcTailPageIds(maxKnownTotal, trueRecordsCount, recordsPerPage);
         console.log("const tailPagesIds = calcTailPageIds(maxKnownTotal, trueRecordsCount, recordsPerPage); tailPagesIds === ", tailPagesIds);
         // throw "TAIL";
-        let tailPagesResponses = await pageIdListFetchFn(tailPagesIds);
         // const tailPagesResponses = await pageIdListFetchFn(tailPagesIds);
 
+        let tailPagesResponses;
         if (IS_DEBUG_FROM_DUMP) {
-            tailPagesResponses = JSON.parse(fileReadDump('unreadPagesResponses.json'));
+            tailPagesResponses = JSON.parse(fileReadDump('tailPagesResponses.json'));
         } else {
+            tailPagesResponses = await pageIdListFetchFn(tailPagesIds);
             fileLogger('tailPagesResponses.json', JSON.stringify(tailPagesResponses));
         }
 
@@ -1523,11 +1524,12 @@ async function fetchMissedRecords (
             // console.log(`Page Ids list is : [${pageIdsToFetch.join(',')}].`);
 
             // const missedPageResponses = await pageIdListFetchFn(pageIdsToFetch);
-            let missedPageResponses = await pageIdListFetchFn(pageIdsToFetch);
 
+            let missedPageResponses;
             if (IS_DEBUG_FROM_DUMP) {
                 missedPageResponses = JSON.parse(fileReadDump('missedPageResponses.json'));
             } else {
+                missedPageResponses = await pageIdListFetchFn(pageIdsToFetch);
                 fileLogger('missedPageResponses.json', JSON.stringify(missedPageResponses));
             }
 
@@ -1679,14 +1681,16 @@ const listUsers = async () => {
 
         const pageIdListFetchFn = pageIdListFetchFnFactory(pageFetcherFn);
 
-        let firstPageResponse = await pageFetcherFn(1);
         // const firstPageResponse = await pageFetcherFn(1);
 
+        let firstPageResponse;
         if (IS_DEBUG_FROM_DUMP) {
-            firstPageResponse = fileReadDump('firstPageResponse.json');
+            firstPageResponse = JSON.parse(fileReadDump('firstPageResponse.json'));
         } else {
+            firstPageResponse = await pageFetcherFn(1);
             fileLogger('firstPageResponse.json', JSON.stringify(firstPageResponse));
         }
+
         const { success, page, value: firstPageValue } = firstPageResponse;
         if (success === false) {
             console.error('Error: First Page request failed');
@@ -1709,16 +1713,15 @@ const listUsers = async () => {
         
         console.error('unreadPageIds', unreadPageIds);
 
-        let unreadPagesResponses = await pageIdListFetchFn(unreadPageIds);
         // const unreadPagesResponses = await pageIdListFetchFn(unreadPageIds);
 
+        let unreadPagesResponses;
         if (IS_DEBUG_FROM_DUMP) {
-            unreadPagesResponses = fileReadDump('unreadPagesResponses.json');
+            unreadPagesResponses = JSON.parse(fileReadDump('unreadPagesResponses.json'));
         } else {
+            unreadPagesResponses = await pageIdListFetchFn(unreadPageIds);
             fileLogger('unreadPagesResponses.json', JSON.stringify(unreadPagesResponses));
         }
-
-        // fs.writeFile(filename, data, [encoding], [callback])
 
         console.error('firstPageResponse a1 JSON STRINGIFY', JSON.stringify(firstPageResponse) );
         console.error('firstPageResponse a1', (firstPageResponse) );
