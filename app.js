@@ -1244,6 +1244,12 @@ const validateResults = (fileReadDump, fileLogger, isPastDayFn, total) => {
         }
     });
     fileLogger('validate_7_countedRecSet.json', JSON.stringify(countedRecSet));
+
+    let countedRecList = Object.keys(countedRecSet).map(name => countedRecSet[name]);
+    fileLogger('validate_8_countedRecList.json', JSON.stringify(countedRecList));
+
+    let countedRecShortList = countedRecList.map(rec => ({name: rec.name, count:rec.count}));
+    fileLogger('validate_9_countedRecShortList.json', JSON.stringify(countedRecShortList));
 };
 
 const listUsers = async () => {
