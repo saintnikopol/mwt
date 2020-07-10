@@ -17,19 +17,24 @@ const RAX_CONFIG = {
 const interceptorId = rax.attach();
 // RETRY SETUP END
 
+// @NOTE Enable logging
 const IS_LOG_RESPONSES = true;
 
-const IS_DEBUG_FROM_DUMP = true;
+// @NOTE: load data from log dump: created on previous run
+const IS_DEBUG_FROM_DUMP = false;
 
-//run script with "IS_LOG_RESPONSES=true" and take file 'logs/log_YYYY_M_DD__H.MM.SS__BOOTSTRAP' value
+// @NOTE: run script with "IS_LOG_RESPONSES=true" and take file 'logs/log_YYYY_M_DD__H.MM.SS__BOOTSTRAP' value
 // const DUMP_FILE_PATH = 'log_YYYY_M_DD__H.MM.SS_';
 // const DUMP_FILE_PATH = 'log_2020_7_10__5.47.48_';
-//EXAMPLES:::
+
+//EXAMPLES:
 // const DUMP_FILE_PATH = 'results_example_9_of_9_static/log_2020_7_10__8.3.56_';
 const DUMP_FILE_PATH = 'results_example_61_of_150_static/log_2020_7_10__7.57.59_';
 // const DUMP_FILE_PATH = 'results_example_150_of_150_NON_static/log_2020_7_10__8.9.9_';
 
 const MAX_RECURSIVE_SEARCH_CYCLES = 10;
+
+const IS_VALIDATION_ENABLED = false;
 
 const fetchTokenFn = async () =>  {
     try {
@@ -239,7 +244,7 @@ const scanPageResponse = (mutableRecordsIndex, pageIndex, pageResponse, isString
             trueRecordsIdList.push(id);
         }
 
-        fileLogger(`XXXXXXXXXXXXX_2.1_record[id${id}][pi-${pageIndex}_pn-${pageId}--${recordIndex}]_r${recursiveGuardCount}.json`, JSON.stringify({record, isInsertedRecord}, null, 4));
+        // fileLogger(`XXXXXXXXXXXXX_2.1_record[id${id}][pi-${pageIndex}_pn-${pageId}--${recordIndex}]_r${recursiveGuardCount}.json`, JSON.stringify({record, isInsertedRecord}, null, 4));
 
         //@NOTE:@WARNING: isInsertedRecord are total mess, they appear randomly
         //@NOTE:@WARNING: isInsertedRecord are total mess, they appear randomly
@@ -375,13 +380,11 @@ function fetchSingleChainedOverlap (pageOverlaps, existingPageChainIndexEntries 
     let foundNewChainEntries = {};
     let args = {existingPageChainIndexEntries};
 
-    fileLogger(`XXXXXXXXXXXXX_4.1.4.1_fetchSingleChainedOverlap_args_r${recursiveGuardCount}_tpi${topLevelPageIndex}_rg${rg}.json`, JSON.stringify(args, null, 4));
+    // fileLogger(`XXXXXXXXXXXXX_4.1.4.1_fetchSingleChainedOverlap_args_r${recursiveGuardCount}_tpi${topLevelPageIndex}_rg${rg}.json`, JSON.stringify(args, null, 4));
     Object.keys(existingPageChainIndexEntries).forEach(pageIndex => {
         if (pageOverlaps[pageIndex] !== undefined) {
             let overlappedPageIndexes = Object.keys(pageOverlaps[pageIndex]);
-            fileLogger(`XXXXXXXXXXXXX_4.1.4.2_fetchSingleChainedOverlap_overlappedPageIndexes_r${recursiveGuardCount}_tpi${topLevelPageIndex}_rg${rg}_ofPage${pageIndex}.json`, JSON.stringify({
-                overlappedPageIndexes
-            }, null, 4));
+            // fileLogger(`XXXXXXXXXXXXX_4.1.4.2_fetchSingleChainedOverlap_overlappedPageIndexes_r${recursiveGuardCount}_tpi${topLevelPageIndex}_rg${rg}_ofPage${pageIndex}.json`, JSON.stringify({ overlappedPageIndexes }, null, 4));
             Object.keys(pageOverlaps[pageIndex])
                 .filter(newChildKeyPageIndex => existingPageChainIndexEntries[newChildKeyPageIndex] === undefined)
                 .forEach(childNewKey => foundNewChainEntries[childNewKey] = true)
@@ -1136,6 +1139,9 @@ const calcVisits = (pageResponses, isPastDayFn) => {
 
 const validateResults = (fileReadDump, fileLogger, isPastDayFn, total) => {
 
+    if (!IS_VALIDATION_ENABLED) {
+        return;
+    }
     const fileReadDumpSilent = file => fileReadDump(file, true);
     let validateFirstPageResponse = JSON.parse(fileReadDumpSilent('firstPageResponse.json'));
     let validateUnreadPagesResponses = JSON.parse(fileReadDumpSilent('unreadPagesResponses.json') || '[]');
