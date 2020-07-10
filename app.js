@@ -18,7 +18,7 @@ const interceptorId = rax.attach();
 // RETRY SETUP END
 
 // @NOTE Enable logging
-const IS_LOG_RESPONSES = true;
+const IS_LOG_RESPONSES = false;
 
 // @NOTE: load data from log dump: created on previous run
 const IS_DEBUG_FROM_DUMP = false;
@@ -28,8 +28,9 @@ const IS_DEBUG_FROM_DUMP = false;
 // const DUMP_FILE_PATH = 'log_2020_7_10__5.47.48_';
 
 //EXAMPLES:
+const DUMP_FILE_PATH = 'log_2020_7_10__8.42.8_';
 // const DUMP_FILE_PATH = 'results_example_9_of_9_static/log_2020_7_10__8.3.56_';
-const DUMP_FILE_PATH = 'results_example_61_of_150_static/log_2020_7_10__7.57.59_';
+// const DUMP_FILE_PATH = 'results_example_61_of_150_static/log_2020_7_10__7.57.59_';
 // const DUMP_FILE_PATH = 'results_example_150_of_150_NON_static/log_2020_7_10__8.9.9_';
 
 const MAX_RECURSIVE_SEARCH_CYCLES = 10;
