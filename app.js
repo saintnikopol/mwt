@@ -19,7 +19,7 @@ const interceptorId = rax.attach();
 
 const IS_LOG_RESPONSES = true;
 
-const IS_DEBUG_FROM_DUMP = true;
+const IS_DEBUG_FROM_DUMP = false;
 
 //run script with "IS_LOG_RESPONSES=true" and take file 'logs/log_YYYY_M_DD__H.MM.SS__BOOTSTRAP' value
 const DUMP_FILE_PATH = 'log_2020_7_10__5.47.48_';
@@ -251,6 +251,12 @@ const scanPageResponse = (mutableRecordsIndex, pageIndex, pageResponse, isString
 
         fileLogger(`XXXXXXXXXXXXX_2.1_record[id${id}][pi-${pageIndex}_pn-${pageId}--${recordIndex}]_r${recursiveGuardCount}.json`, JSON.stringify({record, isInsertedRecord}, null, 4));
 
+        //@NOTE:@WARNING: isInsertedRecord are total mess, they appear randomly
+        //@NOTE:@WARNING: isInsertedRecord are total mess, they appear randomly
+        //@NOTE:@WARNING: isInsertedRecord are total mess, they appear randomly
+        //@NOTE:@WARNING: isInsertedRecord are total mess, they appear randomly
+        //@NOTE:@WARNING: isInsertedRecord are total mess, they appear randomly
+        //@NOTE:@WARNING: isInsertedRecord are total mess, they appear randomly
         if (mutableRecordsIndex.records[id] === undefined) {
             mutableRecordsIndex.records[id] = {
                 pageIndexes: {
@@ -269,7 +275,10 @@ const scanPageResponse = (mutableRecordsIndex, pageIndex, pageResponse, isString
           mutableRecordsIndex.records[id].pageIndexes[pageIndex] === undefined
         ) {
                 mutableRecordsIndex.records[id].pageIndexes[pageIndex] = recordIndex;
-                mutableRecordsIndex.overlapRecordIds[id] = true;
+
+                if (!isInsertedRecord) {
+                    mutableRecordsIndex.overlapTrueRecordIds[id] = true;
+                }
         }
         allRecordsIdList.push(id);
     });
@@ -377,7 +386,7 @@ const scanPageResponse = (mutableRecordsIndex, pageIndex, pageResponse, isString
 
 // /**
 //  *
-//  * @param overlapRecords
+//  * @param overlapTrueRecords
 //  * @returns {{
 //     [pageIndex]: {
 //         [recordIndex]: {
@@ -391,8 +400,8 @@ const scanPageResponse = (mutableRecordsIndex, pageIndex, pageResponse, isString
 //     }
 // }}
 //  */
-// function getPageOverlapsWithRecordsIndexes(overlapRecords) {
-//     return overlapRecords.reduce((accPageOverlapsWith, overlapRecord) => {
+// function getPageOverlapsWithRecordsIndexes(overlapTrueRecords) {
+//     return overlapTrueRecords.reduce((accPageOverlapsWith, overlapRecord) => {
 //             const {pageIndexes, isInsertedRecord} = overlapRecord;
 //             const overlappedPageIndexes = Object.keys(pageIndexes);
 //             overlappedPageIndexes.forEach(pageIndex => {
@@ -421,7 +430,7 @@ const scanPageResponse = (mutableRecordsIndex, pageIndex, pageResponse, isString
 
 /**
  *
- * @param overlapRecords
+ * @param overlapTrueRecords
  * @returns {{
     [pageIndex]: {
         [pageIndexXX]: true,
@@ -431,9 +440,8 @@ const scanPageResponse = (mutableRecordsIndex, pageIndex, pageResponse, isString
     }
   }}
  */
-function getPageOverlaps(overlapRecords) {
-    // const pagesOfOverlapRecords = overlapRecords.map(record => Object.keys(record.pageIndexes));
-    return overlapRecords.reduce((accPageOverlapsWith, overlapRecord) => {
+function getPageOverlaps(overlapTrueRecords) {
+    return overlapTrueRecords.reduce((accPageOverlapsWith, overlapRecord) => {
             const { /*id, */pageIndexes/*, isInsertedRecord, name*/ } = overlapRecord;
             const overlappedPageIndexes = Object.keys(pageIndexes);
             overlappedPageIndexes.forEach(pageIndex => {
@@ -488,7 +496,7 @@ function fetchSingleChainedOverlap (pageOverlaps, existingPageChainIndexEntries 
     if (!hasNewEntries) {
         return nextExistingKeys;
     }
-    return fetchSingleChainedOverlap(pageOverlaps, nextExistingKeys, fileLogger, recursiveGuardCount, rg + 1);
+    return fetchSingleChainedOverlap(pageOverlaps, nextExistingKeys, fileLogger, recursiveGuardCount, topLevelPageIndex, rg + 1);
 }
 
 /**
@@ -698,11 +706,11 @@ function calcMissedRecordsPossiblePositions(recordsIndex, scannedPageIndexes, fu
 }
 
 const findPageChains = (recordsIndex, pageScanResults, fileLogger, recursiveGuardCount) => {
-    const { records = {}, overlapRecordIds = {} } = recordsIndex;
-    fileLogger(`XXXXXXXXXXXXX_4.1.1_overlapRecordIds_r${recursiveGuardCount}.json`, JSON.stringify(overlapRecordIds, null, 4));
+    const { records = {}, overlapTrueRecordIds = {} } = recordsIndex;
+    fileLogger(`XXXXXXXXXXXXX_4.1.1_overlapTrueRecordIds_r${recursiveGuardCount}.json`, JSON.stringify(overlapTrueRecordIds, null, 4));
 
-    const overlapRecords = Object.keys(overlapRecordIds).map(id => Object.assign({id}, records[id]));
-    fileLogger(`XXXXXXXXXXXXX_4.1.2_overlapRecords_r${recursiveGuardCount}.json`, JSON.stringify(overlapRecords, null, 4));
+    const overlapTrueRecords = Object.keys(overlapTrueRecordIds).map(id => Object.assign({id}, records[id]));
+    fileLogger(`XXXXXXXXXXXXX_4.1.2_overlapTrueRecords_r${recursiveGuardCount}.json`, JSON.stringify(overlapTrueRecords, null, 4));
 
     // /**
     //  * {
@@ -718,7 +726,7 @@ const findPageChains = (recordsIndex, pageScanResults, fileLogger, recursiveGuar
     //  *     }
     //  * }
     //  */
-    // const pageOverlapsWithRecordsIndexes = getPageOverlapsWithRecordsIndexes(overlapRecords);
+    // const pageOverlapsWithRecordsIndexes = getPageOverlapsWithRecordsIndexes(overlapTrueRecords);
     /**
      * {
      *     [pageIndex]: {
@@ -735,7 +743,7 @@ const findPageChains = (recordsIndex, pageScanResults, fileLogger, recursiveGuar
      *     },
      * }
      */
-    const pageOverlaps = getPageOverlaps(overlapRecords);
+    const pageOverlaps = getPageOverlaps(overlapTrueRecords);
 
     fileLogger(`XXXXXXXXXXXXX_4.1.3_pageOverlaps_r${recursiveGuardCount}.json`, JSON.stringify(pageOverlaps, null, 4));
 
@@ -919,7 +927,7 @@ async function fetchTailPages (
             recordsPerPage: number,
             pageOverlaps: {},
             records: {},
-            overlapRecordIds: {},
+            overlapTrueRecordIds: {},
         } | undefined}
  * @param fileLogger
  * @param fileReadDump
@@ -988,7 +996,7 @@ async function fetchMissedRecords (
             recordsPerPage,
             pageOverlaps: {},
             records: {},
-            overlapRecordIds: {},
+            overlapTrueRecordIds: {},
         };
     }
     fileLogger(`ZZZ_6_mutableRecordsIndex_r${recursiveGuardCount}.json`, JSON.stringify(mutableRecordsIndex, null, 4));
@@ -1068,8 +1076,8 @@ async function fetchMissedRecords (
         iterationInsertedRecordsFoundCount,
         iterationMaxKnownTotalRecordCount
     };
-    console.log(`XXXXXXXXXXXXX_2.4.1A_XXXXXXXXXXXXXX_r${recursiveGuardCount}`, XXXXXXXXXXXXXX);
-    fileLogger(`XXXXXXXXXXXXX_2.4.1A_XXXXXXXXXXXXXX_r${recursiveGuardCount}.json`, JSON.stringify(XXXXXXXXXXXXXX, null, 4));
+    console.log(`XXXXXXXXXXXXX_2.4.1.1_XXXXXXXXXXXXXX_r${recursiveGuardCount}`, XXXXXXXXXXXXXX);
+    fileLogger(`XXXXXXXXXXXXX_2.4.1.1_XXXXXXXXXXXXXX_r${recursiveGuardCount}.json`, JSON.stringify(XXXXXXXXXXXXXX, null, 4));
 
 
     mutableRecordsIndex.trueRecordsFoundCount += iterationTrueRecordsFoundCount;
@@ -1082,7 +1090,7 @@ async function fetchMissedRecords (
     let devRecordsIdsLength = devRecordsIds.length;
     let devTrueRecordsIdsLength = devTrueRecordsIds.length;
 
-    fileLogger(`XXXXXXXXXXXXX_2.4.1B_RECURSION_r${recursiveGuardCount}.json`, JSON.stringify({trueRecordsCount, mutableRecordsIndex, devRecordsIds, devRecordsIdsLength, devTrueRecordsIds, devTrueRecordsIdsLength}, null, 4));
+    fileLogger(`XXXXXXXXXXXXX_2.4.1.2_RECURSION_r${recursiveGuardCount}.json`, JSON.stringify({trueRecordsCount, mutableRecordsIndex, devRecordsIds, devRecordsIdsLength, devTrueRecordsIds, devTrueRecordsIdsLength}, null, 4));
 
     if (mutableRecordsIndex.trueRecordsFoundCount > trueRecordsCount) {
         console.error('DATA BUG DATA BUG DATA BUG')
