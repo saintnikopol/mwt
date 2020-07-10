@@ -1100,7 +1100,7 @@ async function fetchMissedRecords (
     if (trueRecordsCount > mutableRecordsIndex.trueRecordsFoundCount) {
         //START RECURSION
         const missedRecordsCount = trueRecordsCount - mutableRecordsIndex.trueRecordsFoundCount;
-        console.log(`Found [${missedRecordsCount}] missed records. Trying to fetch ...`);
+        console.log(`Found [${mutableRecordsIndex.trueRecordsFoundCount}] of total [${trueRecordsCount}]. Observed [${missedRecordsCount}] missed records. Trying to fetch ...`);
 
 
         fileLogger(`XXXXXXXXXXXXX_3_mutableRecordsIndex_r${recursiveGuardCount}.json`, JSON.stringify(mutableRecordsIndex, null, 4));
@@ -1170,6 +1170,8 @@ async function fetchMissedRecords (
           recursiveGuardCount + 1,
         );
         return [...tailPagesResponses, ...missedPageResponses, ...recursivelyFetchedRecords];
+    } else {
+        console.log(`Found [${mutableRecordsIndex.trueRecordsFoundCount}] of total [${trueRecordsCount}]. All records found.`);
     }
 
     fileLogger(`recursiveGuardCount`, recursiveGuardCount);
