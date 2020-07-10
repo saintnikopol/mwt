@@ -21,10 +21,11 @@ const IS_LOG_RESPONSES = true;
 
 const IS_DEBUG_FROM_DUMP = true;
 
-const DUMP_FILE_PATH = 'log_2020_7_10__1.32.38_';
+//run script with "IS_LOG_RESPONSES=true" and take file 'logs/log_YYYY_M_DD__H.MM.SS__BOOTSTRAP' value
+const DUMP_FILE_PATH = 'log_2020_7_10__5.47.48_';
 // const DUMP_FILE_PATH = 'log_2020_7_9__22.29.11_';
 
-const MAX_RECURSIVE_SEARCH_CYCLES = 4;
+const MAX_RECURSIVE_SEARCH_CYCLES = 10;
 
 const fetchTokenFn = async () =>  {
     try {
@@ -431,8 +432,9 @@ const scanPageResponse = (mutableRecordsIndex, pageIndex, pageResponse, isString
   }}
  */
 function getPageOverlaps(overlapRecords) {
+    // const pagesOfOverlapRecords = overlapRecords.map(record => Object.keys(record.pageIndexes));
     return overlapRecords.reduce((accPageOverlapsWith, overlapRecord) => {
-            const { pageIndexes } = overlapRecord;
+            const { /*id, */pageIndexes/*, isInsertedRecord, name*/ } = overlapRecord;
             const overlappedPageIndexes = Object.keys(pageIndexes);
             overlappedPageIndexes.forEach(pageIndex => {
                 if (accPageOverlapsWith[pageIndex] === undefined) {
@@ -455,33 +457,38 @@ function getPageOverlaps(overlapRecords) {
  * @NOTE: recursive
  *
  * @param pageOverlaps  // @see getPageOverlaps()
- * @param newKeys    // {[pageIndex]: true, ...}
  * @param existingPageChainIndexEntries // {[pageIndex]: true, ...}
  * @returns {*}
  */
-function fetchSingleChainedOverlap (pageOverlaps, newKeys, existingPageChainIndexEntries = {}) {
+function fetchSingleChainedOverlap (pageOverlaps, existingPageChainIndexEntries = {}, fileLogger, recursiveGuardCount, topLevelPageIndex, rg = 0) {
     let foundNewChainEntries = {};
+    let args = {existingPageChainIndexEntries};
 
-    Object.keys(newKeys).forEach(pageIndex => {
+    fileLogger(`XXXXXXXXXXXXX_4.1.4.1_fetchSingleChainedOverlap_args_r${recursiveGuardCount}_tpi${topLevelPageIndex}_rg${rg}.json`, JSON.stringify(args, null, 4));
+    Object.keys(existingPageChainIndexEntries).forEach(pageIndex => {
         if (pageOverlaps[pageIndex] !== undefined) {
+            let overlappedPageIndexes = Object.keys(pageOverlaps[pageIndex]);
+            fileLogger(`XXXXXXXXXXXXX_4.1.4.2_fetchSingleChainedOverlap_overlappedPageIndexes_r${recursiveGuardCount}_tpi${topLevelPageIndex}_rg${rg}_ofPage${pageIndex}.json`, JSON.stringify({
+                overlappedPageIndexes
+            }, null, 4));
             Object.keys(pageOverlaps[pageIndex])
-                .filter(newChildKeyPageIndex =>
-                    (
-                        existingPageChainIndexEntries[newChildKeyPageIndex] === undefined &&
-                        newKeys[newChildKeyPageIndex] === undefined
-                    )
-                )
+                .filter(newChildKeyPageIndex => existingPageChainIndexEntries[newChildKeyPageIndex] === undefined)
                 .forEach(childNewKey => foundNewChainEntries[childNewKey] = true)
-
         }
     });
 
     const hasNewEntries = Object.keys(foundNewChainEntries).length > 0;
-    const nextExistingKeys = Object.assign({}, existingPageChainIndexEntries, newKeys);
+    const nextExistingKeys = Object.assign({}, existingPageChainIndexEntries, foundNewChainEntries);
+    const preExit = {
+        foundNewChainEntries,
+        hasNewEntries,
+        nextExistingKeys,
+    };
+    fileLogger(`XXXXXXXXXXXXX_4.1.4.3_fetchSingleChainedOverlap_preExit_r${recursiveGuardCount}_tpi${topLevelPageIndex}_rg${rg}.json`, JSON.stringify(preExit, null, 4));
     if (!hasNewEntries) {
         return nextExistingKeys;
     }
-    return fetchSingleChainedOverlap(pageOverlaps, foundNewChainEntries, nextExistingKeys);
+    return fetchSingleChainedOverlap(pageOverlaps, nextExistingKeys, fileLogger, recursiveGuardCount, rg + 1);
 }
 
 /**
@@ -498,12 +505,12 @@ function fetchSingleChainedOverlap (pageOverlaps, newKeys, existingPageChainInde
  *      ...
  * ]}
  */
-function fetchChainedOverlaps (topLevelPageIndexes, pageOverlaps) {
+function fetchChainedOverlaps (topLevelPageIndexes, pageOverlaps, fileLogger, recursiveGuardCount) {
     let usedPageIndexes = {};
     let pageIndexesChains = [];
     topLevelPageIndexes.forEach(topLevelPageIndex => {
         if (usedPageIndexes[topLevelPageIndex] === undefined) {
-            let chain = fetchSingleChainedOverlap(pageOverlaps, {}, {[topLevelPageIndex]: true});
+            let chain = fetchSingleChainedOverlap(pageOverlaps, {[topLevelPageIndex]: true}, fileLogger, recursiveGuardCount, topLevelPageIndex, 0);
             Object.assign(usedPageIndexes, chain);
             pageIndexesChains.push(chain);
         }
@@ -746,8 +753,8 @@ const findPageChains = (recordsIndex, pageScanResults, fileLogger, recursiveGuar
      *    ...
      * ]}
      */
-     let chainsOfPageIndexes = fetchChainedOverlaps(scannedPageIndexes, pageOverlaps);
-    fileLogger(`XXXXXXXXXXXXX_4.1.4_chainsOfPageIndexes_r${recursiveGuardCount}.json`, JSON.stringify(chainsOfPageIndexes, null, 4));
+     let chainsOfPageIndexes = fetchChainedOverlaps(scannedPageIndexes, pageOverlaps, fileLogger, recursiveGuardCount);
+    fileLogger(`XXXXXXXXXXXXX_4.1.5_chainsOfPageIndexes_r${recursiveGuardCount}.json`, JSON.stringify(chainsOfPageIndexes, null, 4));
 
     /**
      *
@@ -825,7 +832,7 @@ function calcTrueAndInsertedAndMaxKnowTotalRecordsCount (pageScanResults) {
     return pageScanResults.reduce(
       (acc,
        {trueUniqRecordsOnPageCount, insertedUniqRecordsOnPageCount, pageTotalRecordsCount}) => {
-          let psr = {trueUniqRecordsOnPageCount, insertedUniqRecordsOnPageCount, pageTotalRecordsCount};
+          // let psr = {trueUniqRecordsOnPageCount, insertedUniqRecordsOnPageCount, pageTotalRecordsCount};
           // fileLogger(`XXXXXXXXXXXXX_2.3_mutableRecordsIndex_r${recursiveGuardCount}.json`, JSON.stringify(mutableRecordsIndex, null, 4));
 
           acc.trueRecordsFoundCount += trueUniqRecordsOnPageCount;
@@ -852,7 +859,7 @@ async function fetchTailPages (
     console.log(`_r${recursiveGuardCount}` + 'const tailPagesIds = calcTailPageIds(maxKnownTotal, trueRecordsCount, recordsPerPage); tailPagesIds === ', tailPagesIds);
 
     if (IS_DEBUG_FROM_DUMP) {
-        tailPagesResponses = JSON.parse(fileReadDump(`tailPagesResponses_r${recursiveGuardCount}.json`));
+        tailPagesResponses = JSON.parse(fileReadDump(`tailPagesResponses_r${recursiveGuardCount}.json`) || '[]');
     } else {
         tailPagesResponses = await pageIdListFetchFn(tailPagesIds);
         fileLogger(`tailPagesResponses_r${recursiveGuardCount}.json`, JSON.stringify(tailPagesResponses, null, 4));
@@ -1061,14 +1068,21 @@ async function fetchMissedRecords (
         iterationInsertedRecordsFoundCount,
         iterationMaxKnownTotalRecordCount
     };
-    console.log(`XXXXXXXXXXXXX_r${recursiveGuardCount}`, XXXXXXXXXXXXXX);
-    fileLogger(`XXXXXXXXXXXXX_r${recursiveGuardCount}.json`, JSON.stringify(XXXXXXXXXXXXXX, null, 4));
+    console.log(`XXXXXXXXXXXXX_2.4.1A_XXXXXXXXXXXXXX_r${recursiveGuardCount}`, XXXXXXXXXXXXXX);
+    fileLogger(`XXXXXXXXXXXXX_2.4.1A_XXXXXXXXXXXXXX_r${recursiveGuardCount}.json`, JSON.stringify(XXXXXXXXXXXXXX, null, 4));
 
 
     mutableRecordsIndex.trueRecordsFoundCount += iterationTrueRecordsFoundCount;
     mutableRecordsIndex.insertedRecordsFoundCount += iterationInsertedRecordsFoundCount;
     mutableRecordsIndex.maxKnownTotalRecordCount = iterationMaxKnownTotalRecordCount;
     mutableRecordsIndex.isTailCaught = pageScanResults.some(scan => scan.isTailPage);
+
+    let devRecordsIds = Object.keys(mutableRecordsIndex.records);
+    let devTrueRecordsIds = Object.keys(mutableRecordsIndex.records).filter(key => parseInt(key, 10) < 150);
+    let devRecordsIdsLength = devRecordsIds.length;
+    let devTrueRecordsIdsLength = devTrueRecordsIds.length;
+
+    fileLogger(`XXXXXXXXXXXXX_2.4.1B_RECURSION_r${recursiveGuardCount}.json`, JSON.stringify({trueRecordsCount, mutableRecordsIndex, devRecordsIds, devRecordsIdsLength, devTrueRecordsIds, devTrueRecordsIdsLength}, null, 4));
 
     if (mutableRecordsIndex.trueRecordsFoundCount > trueRecordsCount) {
         console.error('DATA BUG DATA BUG DATA BUG')
@@ -1117,7 +1131,7 @@ async function fetchMissedRecords (
             // const missedPageResponses = await pageIdListFetchFn(pageIdsToFetch);
 
             if (IS_DEBUG_FROM_DUMP) {
-                missedPageResponses = JSON.parse(fileReadDump(`missedPageResponses_r${recursiveGuardCount}.json`));
+                missedPageResponses = JSON.parse(fileReadDump(`missedPageResponses_r${recursiveGuardCount}.json`) || '[]');
             } else {
                 missedPageResponses = await pageIdListFetchFn(pageIdsToFetch);
                 console.log("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
@@ -1236,7 +1250,7 @@ const calcVisits = (pageResponses, isPastDayFn) => {
 const validateResults = (fileReadDump, fileLogger, isPastDayFn, total) => {
 
     let validateFirstPageResponse = JSON.parse(fileReadDump('firstPageResponse.json'));
-    let validateUnreadPagesResponses = JSON.parse(fileReadDump('unreadPagesResponses.json'));
+    let validateUnreadPagesResponses = JSON.parse(fileReadDump('unreadPagesResponses.json') || '[]');
 
     let maxRecursiveGuardCount = parseInt(fileReadDump('recursiveGuardCount'), 10);
     console.log("maxRecursiveGuardCount === ", maxRecursiveGuardCount);
@@ -1260,16 +1274,16 @@ const validateResults = (fileReadDump, fileLogger, isPastDayFn, total) => {
     const recursiveValidateMissedPagesResponses = possibleRecursiveIndexes.map(index =>
       fileReadDump(missedPagesFilenameFn(index))).filter(fileContent => fileContent !== undefined);
 
-    fileLogger('xx_recursiveValidateTailPagesResponses.json', JSON.stringify(recursiveValidateTailPagesResponses, null, 4));
-    fileLogger('xx_recursiveValidateMissedPagesResponses.json', JSON.stringify(recursiveValidateMissedPagesResponses, null, 4));
+    // fileLogger('xx_recursiveValidateTailPagesResponses.json', JSON.stringify(recursiveValidateTailPagesResponses, null, 4));
+    // fileLogger('xx_recursiveValidateMissedPagesResponses.json', JSON.stringify(recursiveValidateMissedPagesResponses, null, 4));
 
     let validateTailPagesResponses = recursiveValidateTailPagesResponses.map(JSON.parse).flat();
     let validateMissedPageResponses = recursiveValidateMissedPagesResponses.map(JSON.parse).flat();
 
-    fileLogger('x_validateFirstPageResponse.json',  JSON.stringify(validateFirstPageResponse, null, 4));
-    fileLogger('x_validateUnreadPagesResponses.json',  JSON.stringify(validateUnreadPagesResponses, null, 4));
-    fileLogger('x_validateTailPagesResponses.json',  JSON.stringify(validateTailPagesResponses, null, 4));
-    fileLogger('x_validateMissedPageResponses.json',  JSON.stringify(validateMissedPageResponses, null, 4));
+    // fileLogger('x_validateFirstPageResponse.json',  JSON.stringify(validateFirstPageResponse, null, 4));
+    // fileLogger('x_validateUnreadPagesResponses.json',  JSON.stringify(validateUnreadPagesResponses, null, 4));
+    // fileLogger('x_validateTailPagesResponses.json',  JSON.stringify(validateTailPagesResponses, null, 4));
+    // fileLogger('x_validateMissedPageResponses.json',  JSON.stringify(validateMissedPageResponses, null, 4));
 
     let all = [
         validateFirstPageResponse,
@@ -1430,7 +1444,7 @@ const listUsers = async () => {
 
         let unreadPagesResponses;
         if (IS_DEBUG_FROM_DUMP) {
-            unreadPagesResponses = JSON.parse(fileReadDump('unreadPagesResponses.json'));
+            unreadPagesResponses = JSON.parse(fileReadDump('unreadPagesResponses.json') || '[]');
         } else {
             unreadPagesResponses = await pageIdListFetchFn(unreadPageIds);
             fileLogger('unreadPagesResponses.json', JSON.stringify(unreadPagesResponses, null, 4));
