@@ -22,8 +22,12 @@ If Daybreak was reached in process we still skip all record from day of "moment 
 [Done] - We are only interested in tracking weekday visits, weekend visits should be ignored.
 [WIP] - Data is not static. Visits could occur while you are fetching the API response.
 [USED]    However, records can only be inserted and it would be always today’s visits.
-[UNTRUE*] Visits cannot be undone. ( *for new records)
+[UNTRUE*] Visits cannot be undone. ( *for new records).
 [DONE] - We should ignore visits from the current day, since the day is still in progress
 [DONE] - It's better to execute parallel requests to API.
 [NOT IMPLEMENTED] - Bonus points for request pool (not necessary).
 [DONE] - Bonus points for retries.
+
+
+@NOTE: Visits cannot be undone
+*New records appear at random place, but they are not stored

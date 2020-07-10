@@ -1,0 +1,12 @@
+{
+    "trueRecordsCount": 150,
+    "trueRecordsFoundCount": 149,
+    "insertedRecordsFoundCount": 7,
+    "maxKnownTotalRecordCount": 167,
+    "trueRecordsMissedCount": 1,
+    "insertedRecordsMissedCount": 10,
+    "gapLength": 11,
+    "endIndex": 166,
+    "lastPossibleGapIndex": 145,
+    "totalStripesLength": 160
+}

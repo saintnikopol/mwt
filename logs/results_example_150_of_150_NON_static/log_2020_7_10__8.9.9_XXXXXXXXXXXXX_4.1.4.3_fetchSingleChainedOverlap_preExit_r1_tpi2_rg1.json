@@ -1,0 +1,12 @@
+{
+    "foundNewChainEntries": {
+        "13": true
+    },
+    "hasNewEntries": true,
+    "nextExistingKeys": {
+        "2": true,
+        "3": true,
+        "12": true,
+        "13": true
+    }
+}

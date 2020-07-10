@@ -1,0 +1,11 @@
+{
+    "trueRecordsCount": 150,
+    "trueRecordsFoundCount": 0,
+    "insertedRecordsFoundCount": 0,
+    "maxKnownTotalRecordCount": 150,
+    "isTailCaught": false,
+    "recordsPerPage": 15,
+    "pageOverlaps": {},
+    "records": {},
+    "overlapTrueRecordIds": {}
+}

@@ -1,0 +1,66 @@
+{
+    "Visitor #0": {
+        "count": 1,
+        "id": 0,
+        "name": "Visitor #0",
+        "date": "2020-06-30T08:11:34+00:00",
+        "isPast": true,
+        "isWeekDay": true
+    },
+    "Visitor #1": {
+        "count": 1,
+        "id": 1,
+        "name": "Visitor #1",
+        "date": "2020-07-06T14:06:07+00:00",
+        "isPast": true,
+        "isWeekDay": true
+    },
+    "Visitor #2": {
+        "count": 1,
+        "id": 2,
+        "name": "Visitor #2",
+        "date": "2020-07-03T15:25:36+00:00",
+        "isPast": true,
+        "isWeekDay": true
+    },
+    "Visitor #3": {
+        "count": 1,
+        "id": 3,
+        "name": "Visitor #3",
+        "date": "2020-07-07T14:17:15+00:00",
+        "isPast": true,
+        "isWeekDay": true
+    },
+    "Visitor #5": {
+        "count": 1,
+        "id": 5,
+        "name": "Visitor #5",
+        "date": "2020-07-07T14:56:08+00:00",
+        "isPast": true,
+        "isWeekDay": true
+    },
+    "Visitor #6": {
+        "count": 1,
+        "id": 6,
+        "name": "Visitor #6",
+        "date": "2020-06-26T04:12:03+00:00",
+        "isPast": true,
+        "isWeekDay": true
+    },
+    "Visitor #7": {
+        "count": 1,
+        "id": 7,
+        "name": "Visitor #7",
+        "date": "2020-07-07T05:06:04+00:00",
+        "isPast": true,
+        "isWeekDay": true
+    },
+    "Visitor #8": {
+        "count": 1,
+        "id": 8,
+        "name": "Visitor #8",
+        "date": "2020-07-01T02:15:13+00:00",
+        "isPast": true,
+        "isWeekDay": true
+    }
+}

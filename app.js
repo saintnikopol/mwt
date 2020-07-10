@@ -19,11 +19,15 @@ const interceptorId = rax.attach();
 
 const IS_LOG_RESPONSES = true;
 
-const IS_DEBUG_FROM_DUMP = false;
+const IS_DEBUG_FROM_DUMP = true;
 
 //run script with "IS_LOG_RESPONSES=true" and take file 'logs/log_YYYY_M_DD__H.MM.SS__BOOTSTRAP' value
-const DUMP_FILE_PATH = 'log_2020_7_10__5.47.48_';
-// const DUMP_FILE_PATH = 'log_2020_7_9__22.29.11_';
+// const DUMP_FILE_PATH = 'log_YYYY_M_DD__H.MM.SS_';
+// const DUMP_FILE_PATH = 'log_2020_7_10__5.47.48_';
+//EXAMPLES:::
+// const DUMP_FILE_PATH = 'results_example_9_of_9_static/log_2020_7_10__8.3.56_';
+const DUMP_FILE_PATH = 'results_example_61_of_150_static/log_2020_7_10__7.57.59_';
+// const DUMP_FILE_PATH = 'results_example_150_of_150_NON_static/log_2020_7_10__8.9.9_';
 
 const MAX_RECURSIVE_SEARCH_CYCLES = 10;
 
@@ -42,14 +46,11 @@ const fetchTokenFn = async () =>  {
 };
 
 const fetchUsers = async (page, token) =>  {
-    console.log("[fetchUsers] typeof page === ", typeof page, page);
-
     try {
         const url = LIST_URL_TEMPLATE(page, token);
-        console.error('url', url);
+        console.log('url', url);
         
         const res = await axios.get(LIST_URL_TEMPLATE(page, token), { raxConfig: RAX_CONFIG });
-        console.log("[fetchUsers][SUCCESS->return]const fetchUsers = async (page, token) =>  { typeof page === ", typeof page, page);
 
         return {
             success: true,
@@ -57,8 +58,7 @@ const fetchUsers = async (page, token) =>  {
             value: res.data
         };
     } catch (err) {
-        console.log("[fetchUsers] } catch (err) {", err);
-        console.log("[fetchUsers][  ERROR->return]const fetchUsers = async (page, token) =>  { typeof page === ", typeof page, page);
+        console.log("[fetchUsers][ERROR]:", err);
         return {
             success: false,
             page: page,
@@ -73,8 +73,6 @@ const pageIdListFetchFnFactory = pageFetcherFn => async unreadPageIds =>
     await Promise.all([...unreadPageIds].map(async id => await pageFetcherFn(id)));
 
 const calcPageIdsAfterFirstPage = (totalRecordsCount, firstPageRecordsCount) => {
-        // console.error('AA  totalRecordsCount :', totalRecordsCount);
-        // console.error('AA  firstPageRecordsCount:',firstPageRecordsCount );
 
     let pageIds = [];
     let originalPagesCount = 0;
@@ -85,7 +83,6 @@ const calcPageIdsAfterFirstPage = (totalRecordsCount, firstPageRecordsCount) => 
         }
         const pagesCount = Math.ceil(totalRecordsCount / firstPageRecordsCount);
         originalPagesCount = pagesCount;
-        // console.error('AA pagesCount  :',pagesCount  );
         for (let pageId = 2; pageId <= pagesCount; pageId++) {
             pageIds.push(pageId);    
         }
@@ -98,20 +95,15 @@ const calcPageIdsAfterFirstPage = (totalRecordsCount, firstPageRecordsCount) => 
 };
 
 const calcTailPageIds = (maxKnownTotal, firstPageTotal, recordsPerPage) => {
-    console.log("const calcTailPageIds = (maxKnownTotal, firstPageTotal, recordsPerPage) => { recordsPerPage === ", recordsPerPage);
-    console.log("const calcTailPageIds = (maxKnownTotal, firstPageTotal, recordsPerPage) => { firstPageTotal === ", firstPageTotal);
-    console.log("const calcTailPageIds = (maxKnownTotal, firstPageTotal, recordsPerPage) => { maxKnownTotal === ", maxKnownTotal);
     const lastFetchedPageId = Math.ceil(firstPageTotal / recordsPerPage);
     const maxKnownTotalPageId = Math.ceil(maxKnownTotal / recordsPerPage);
 
     const isLastPageFullyFetched = lastFetchedPageId * recordsPerPage === firstPageTotal;
 
     const firstUnfetchedPageId = isLastPageFullyFetched ? lastFetchedPageId + 1 : lastFetchedPageId;
-    console.log("const firstUnfetchedPageId = isLastPageFullyFetched ? lastFetchedPageId + 1 : lastFetchedPageId; firstUnfetchedPageId === ", firstUnfetchedPageId);
     let tailPageIds = [];
     for (let tailPageId = firstUnfetchedPageId; tailPageId <= maxKnownTotalPageId; tailPageId++) {
         tailPageIds.push(tailPageId);
-        console.log("tailPageIds.push(tailPageId) tailPageId === ", tailPageId);
     }
     return tailPageIds;
 };
@@ -238,8 +230,6 @@ const scanPageResponse = (mutableRecordsIndex, pageIndex, pageResponse, isString
     let insertedUniqRecordsOnPageCount = 0;
     data.forEach((record, recordIndex) => {
         const { id, name = '', date: stringDate } = record;
-        // console.log('[', id, '] stringDate', stringDate);
-        // console.log('[', id, '] isStringDatePastFn(stringDate)', isStringDatePastFn(stringDate));
         const isInsertedRecord = !isStringDatePastFn(stringDate);
 
         if (isInsertedRecord) {
@@ -299,49 +289,6 @@ const scanPageResponse = (mutableRecordsIndex, pageIndex, pageResponse, isString
 
     const insertedRecordsOnPageCount = allRecordsIdList.length - trueRecordsIdList.length;
 
-
-    // const maxRecordsOnRightWithInsertedCount = (isCutTailPage || isFullTailPage) ? 0 :
-    //     pageTotalRecordsCount
-
-    // 150
-
-    ////
-    // 1 0..14
-    // 2 15..29
-    // 3 30..44
-    // 4 45..59
-    // 5 60..74
-    // 6 75..89
-    // 7 90..104
-    // 8 105..119
-    // 9 120..134
-    // 10 135..149
-    // 11 150..165
-
-    // pageId = 10, shiftWIRC = 25
-    // 0       trueRecordsOnPageCount     trueRecordsCount // pageTotalRecordsCount
-    // minIdx
-    //         EmptyLeftIdx
-    //             TruRecCount
-    //                      allRight
-    //                        --inserted
-    //                                     MaxTrueIndex
-    //                                      /MaxIndex
-    // 0       135    13     149-2          [149/176]      150 // 177 |175   // 27 // 25
-    // 0       135    13     149-2          [149/166]      150 // 167 |165   // 17 // 15
-    // 0       135    13+2   149            [149/156]      150 // 157 |155   // 7  // 5
-
-    // 0       135    13     147            [149/176]      150 // 177 |175   // 27 // 25
-    // 0       135    13     147            [149/166]      150 // 167 |165   // 17 // 15
-    // 0       135    13     147            [149/156]      150 // 157 |155   // 7  // 5
-
-
-    // maxPossibleRecordsOnRight = pageTotalRecordsCount - ((pageId - 1) * recordsPerPage +  currentPageRecordCount);
-
-    /// 10   // 177 : 10 I ..x.j.x..J            13, 12    + 27 / --2 | 25
-    /// 10   // 167 : 10 I ..x.j.x..J            13, 12    + 27 / --2 | 17
-    /// 10   // 157 : 10 I ..x.j.x..J            13, 12    + 27 / --2 | 7
-
     const shiftWithInserted = pageTotalRecordsCount - trueRecordsCount;
     const shiftWithoutInserted = shiftWithInserted - insertedRecordsOnPageCount;
     const {
@@ -383,50 +330,6 @@ const scanPageResponse = (mutableRecordsIndex, pageIndex, pageResponse, isString
     };
     return pageScan;
 };
-
-// /**
-//  *
-//  * @param overlapTrueRecords
-//  * @returns {{
-//     [pageIndex]: {
-//         [recordIndex]: {
-//             [pageIndexXX]: 'recordIndexInXX',
-//             [pageIndexYY]: 'recordIndexInYY',
-//         },
-//         [recordIndex2]: {
-//             [pageIndex2XX]: 'recordIndex2InXX',
-//             [pageIndex2YY]: 'recordIndex2InYY',
-//         },
-//     }
-// }}
-//  */
-// function getPageOverlapsWithRecordsIndexes(overlapTrueRecords) {
-//     return overlapTrueRecords.reduce((accPageOverlapsWith, overlapRecord) => {
-//             const {pageIndexes, isInsertedRecord} = overlapRecord;
-//             const overlappedPageIndexes = Object.keys(pageIndexes);
-//             overlappedPageIndexes.forEach(pageIndex => {
-//                 const recordIndex = pageIndexes[pageIndex];
-//                 if (accPageOverlapsWith[pageIndex] === undefined) {
-//                     accPageOverlapsWith[pageIndex] = {
-//                         /// [recordIndex] : { [pageIndex1]: recordIndex13, [pageIndex2]: recordIndex7}
-//                         [recordIndex]: {},
-//                     };
-//                 } else if (accPageOverlapsWith[pageIndex][recordIndex] === undefined) {
-//                     accPageOverlapsWith[pageIndex][recordIndex] = {};
-//                 }
-//
-//                 overlappedPageIndexes.filter(
-//                     overlappedPageIndex => overlappedPageIndex !== pageIndex
-//                 ).forEach(overlappedPageIndexFiltered =>
-//                     accPageOverlapsWith[pageIndex][recordIndex][overlappedPageIndexFiltered] =
-//                         pageIndexes[overlappedPageIndexFiltered]
-//                 );
-//             });
-//             console.log("return accPageOverlapsWith; accPageOverlapsWith === ", accPageOverlapsWith);
-//             return accPageOverlapsWith;
-//         },
-//         {});
-// }
 
 /**
  *
@@ -663,11 +566,9 @@ function calcMissedRecordsPossiblePositions(recordsIndex, scannedPageIndexes, fu
     const trueRecordsMissedCount = trueRecordsCount - trueRecordsFoundCount;
     const insertedRecordsMissedCount = maxKnownTotalRecordCount - trueRecordsCount - insertedRecordsFoundCount;
     const gapLength = trueRecordsMissedCount + insertedRecordsMissedCount;
-    console.log("const gapLength = trueRecordsMissedCount + insertedRecordsMissedCount; gapLength === ", gapLength);
     fileLogger(`XXXXXXXXXXXXX_5.1_gapLength_r${recursiveGuardCount}.json`, JSON.stringify(gapLength, null, 4));
 
     const stripeLengths = fullySortedChains.map(chain => chain.allRecordsOnChainCount);
-    console.log("const stripeLengths = fullySortedChains.map(chain => chain.allRecordsOnChainCount); stripeLengths === ", stripeLengths);
     fileLogger(`XXXXXXXXXXXXX_5.2_stripeLengths_r${recursiveGuardCount}.json`, JSON.stringify({stripeLengths}, null, 4));
 
     const endIndex = maxKnownTotalRecordCount - 1;
@@ -688,7 +589,6 @@ function calcMissedRecordsPossiblePositions(recordsIndex, scannedPageIndexes, fu
         lastPossibleGapIndex,
         totalStripesLength,
     };
-    console.log('xxx', xxx);
     fileLogger(`XXXXXXXXXXXXX_5.3_xxx_r${recursiveGuardCount}.json`, JSON.stringify(xxx, null, 4));
 
     const gapsStarts = stripeLengths.reduce(
@@ -811,9 +711,7 @@ function coverMergedGapPositionsWithPageIds(mergedGapPositions, recordsPerPage) 
     const positionToPageId = (position) => 1 + Math.floor(position / recordsPerPage);
     const pageIdsSet = mergedGapPositions.reduce((acc, {left, right}, index) => {
         const leftPageId = positionToPageId(left);
-        console.log("[coverMergedGapPositionsWithPageIds]const leftPageId = positionToPageId(left); leftPageId === ", typeof leftPageId, leftPageId);
         const rightPageId = positionToPageId(right);
-        console.log("[coverMergedGapPositionsWithPageIds]const rightPageId = positionToPageId(left); rightPageId === ", typeof rightPageId, rightPageId);
         acc[leftPageId] = true;
         if (rightPageId < leftPageId) {
             console.error("Error: algorithm got missed ranges");
@@ -826,13 +724,11 @@ function coverMergedGapPositionsWithPageIds(mergedGapPositions, recordsPerPage) 
         return acc;
     }, {});
 
-    console.log("[coverMergedGapPositionsWithPageIds]const pageIdsList = Object.keys(pageIdsSet).sort(); pageIdsSet === ", pageIdsSet);
 
     const pageIdsList = Object.keys(pageIdsSet)
       .map(pageIdString => parseInt(pageIdString, 10))
       .sort((a, b) => a - b);
 
-    console.log("return pageIdsList; pageIdsList === ", pageIdsList);
     return pageIdsList;
 }
 
@@ -864,7 +760,6 @@ async function fetchTailPages (
   recursiveGuardCount
 ) {
     const tailPagesIds = calcTailPageIds(maxKnownTotal, trueRecordsCount, recordsPerPage);
-    console.log(`_r${recursiveGuardCount}` + 'const tailPagesIds = calcTailPageIds(maxKnownTotal, trueRecordsCount, recordsPerPage); tailPagesIds === ', tailPagesIds);
 
     if (IS_DEBUG_FROM_DUMP) {
         tailPagesResponses = JSON.parse(fileReadDump(`tailPagesResponses_r${recursiveGuardCount}.json`) || '[]');
@@ -946,7 +841,7 @@ async function fetchMissedRecords (
     recursiveGuardCount = 0
 ) {
 
-    console.log(">>>>>>>>>>>>> fetchMissedRecords fetchMissedRecords === ", recursiveGuardCount);
+    console.log(`>>>>>>>>>>>>> fetchMissedRecords try [${recursiveGuardCount}]`);
     fileLogger(`ZZZ_1_firstPageResponse_r${recursiveGuardCount}.json`, JSON.stringify(firstPageResponse, null, 4));
     fileLogger(`ZZZ_2_otherPagesResponses_r${recursiveGuardCount}.json`, JSON.stringify(otherPagesResponses, null, 4));
     fileLogger(`ZZZ_3_mutableRecordsIndex_r${recursiveGuardCount}.json`, JSON.stringify(mutableRecordsIndex, null, 4));
@@ -1064,7 +959,6 @@ async function fetchMissedRecords (
     fileLogger(`XXXXXXXXXXXXX_2.2_pageScanResults_r${recursiveGuardCount}.json`, JSON.stringify(pageScanResults, null, 4));
     fileLogger(`XXXXXXXXXXXXX_2.3_mutableRecordsIndex_r${recursiveGuardCount}.json`, JSON.stringify(mutableRecordsIndex, null, 4));
 
-    // console.log('pageScanResults', JSON.stringify(pageScanResults, null, 4));
     const {
         trueRecordsFoundCount: iterationTrueRecordsFoundCount,
         insertedRecordsFoundCount: iterationInsertedRecordsFoundCount,
@@ -1076,7 +970,6 @@ async function fetchMissedRecords (
         iterationInsertedRecordsFoundCount,
         iterationMaxKnownTotalRecordCount
     };
-    console.log(`XXXXXXXXXXXXX_2.4.1.1_XXXXXXXXXXXXXX_r${recursiveGuardCount}`, XXXXXXXXXXXXXX);
     fileLogger(`XXXXXXXXXXXXX_2.4.1.1_XXXXXXXXXXXXXX_r${recursiveGuardCount}.json`, JSON.stringify(XXXXXXXXXXXXXX, null, 4));
 
 
@@ -1093,7 +986,7 @@ async function fetchMissedRecords (
     fileLogger(`XXXXXXXXXXXXX_2.4.1.2_RECURSION_r${recursiveGuardCount}.json`, JSON.stringify({trueRecordsCount, mutableRecordsIndex, devRecordsIds, devRecordsIdsLength, devTrueRecordsIds, devTrueRecordsIdsLength}, null, 4));
 
     if (mutableRecordsIndex.trueRecordsFoundCount > trueRecordsCount) {
-        console.error('DATA BUG DATA BUG DATA BUG')
+        console.error('DATA BUG DATA BUG DATA BUG: trueRecordsFoundCount > trueRecordsCount');
     }
     // If server data is malformed then on re-fetch we can get more "trueOriginal" records
     // than correct data count should be
@@ -1106,10 +999,7 @@ async function fetchMissedRecords (
         fileLogger(`XXXXXXXXXXXXX_3_mutableRecordsIndex_r${recursiveGuardCount}.json`, JSON.stringify(mutableRecordsIndex, null, 4));
 
         if (mutableRecordsIndex.isTailCaught === true) {
-            console.log("if (mutableRecordsIndex.isTailCaught === true) {>>> recursiveTailAndMissedRecords = fetchMissedRecords");
-
             const fullySortedChains = findPageChains(mutableRecordsIndex, pageScanResults, fileLogger, recursiveGuardCount);
-            console.log("const fullySortedChains = findPageChains(mutableRecordsIndex, pageScanResults); fullySortedChains === ", fullySortedChains);
             fileLogger(`XXXXXXXXXXXXX_4.2_fullySortedChains_r${recursiveGuardCount}.json`, JSON.stringify(fullySortedChains, null, 4));
 
             let scannedPageIndexes = pageScanResults.map(({pageIndex} = {}) => pageIndex);
@@ -1121,35 +1011,25 @@ async function fetchMissedRecords (
              * @type {{left: *, right: *}[]}
              */
             const gapPositions = calcMissedRecordsPossiblePositions(mutableRecordsIndex, scannedPageIndexes, fullySortedChains, fileLogger, recursiveGuardCount);
-            console.log("const gapPositions = calcMissedRecordsPossiblePositions(mutableRecordsIndex, scannedPageIndexes, fullySortedChains); gapPositions === ", gapPositions);
             fileLogger(`XXXXXXXXXXXXX_5.9_gapPositions_r${recursiveGuardCount}.json`, JSON.stringify(gapPositions, null, 4));
 
             const mergedGapPositions = mergeGaps(gapPositions);
-            console.log("const mergedGapPositions = mergeGaps(gapPositions); mergedGapPositions === ", mergedGapPositions);
             fileLogger(`XXXXXXXXXXXXX_6_mergedGapPositions_r${recursiveGuardCount}.json`, JSON.stringify(mergedGapPositions, null, 4));
 
             const pageIdsToFetch = coverMergedGapPositionsWithPageIds(mergedGapPositions, recordsPerPage);
-            console.log("const pageIdsToFetch = coverMergedGapPositionsWithPageIds(mergedGapPositions, recordsPerPage); pageIdsToFetch === ", pageIdsToFetch);
             fileLogger(`XXXXXXXXXXXXX_7_pageIdsToFetch_r${recursiveGuardCount}.json`, JSON.stringify(pageIdsToFetch, null, 4));
 
             console.log(`Calculated ${pageIdsToFetch.length} in total possible pages with missed records.`);
 
             console.log(`Page Ids list is : [${pageIdsToFetch.join(',')}].`);
 
-            // const missedPageResponses = await pageIdListFetchFn(pageIdsToFetch);
-
             if (IS_DEBUG_FROM_DUMP) {
                 missedPageResponses = JSON.parse(fileReadDump(`missedPageResponses_r${recursiveGuardCount}.json`) || '[]');
             } else {
                 missedPageResponses = await pageIdListFetchFn(pageIdsToFetch);
-                console.log("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-                console.log("missedPageResponses = await pageIdListFetchFn(pageIdsToFetch); missedPageResponses === ", missedPageResponses);
-                console.log("missedPageResponses = await pageIdListFetchFn(pageIdsToFetch); missedPageResponses === JSON.stringify(", JSON.stringify(missedPageResponses, null, 4));
                 fileLogger(`missedPageResponses_r${recursiveGuardCount}.json`, JSON.stringify(missedPageResponses, null, 4));
             }
 
-        // console.error('missedPageResponses a1 JSON STRINGIFY', JSON.stringify(missedPageResponses, null, 4) );
-        // console.error('missedPageResponses a1', (missedPageResponses) );
         }
 
         fileLogger(`ZZZZZ_1_otherPagesResponses_r${recursiveGuardCount}.json`, JSON.stringify(otherPagesResponses, null, 4));
@@ -1213,10 +1093,11 @@ const getMaxTotal = pageResponses => {
  * @return {{}}
  */
 const calcVisits = (pageResponses, isPastDayFn) => {
-    console.log('###################### responses ######################');
-    console.log(pageResponses.length);
+    // console.log('###################### responses ######################');
+    // console.log(pageResponses.length);
     // console.log(JSON.stringify(pageResponses, null, 4));
-    console.log('###################### responses ######################');
+    // console.log('###################### responses ######################');
+
     let nameVisits = {};
     const setNameVisit = (name) => nameVisits[name] = nameVisits[name] === undefined ? 1: nameVisits[name] + 1;
 
@@ -1228,26 +1109,22 @@ const calcVisits = (pageResponses, isPastDayFn) => {
     pageResponses.filter(({success}) => success)
         .forEach(({ value: { data = [] } = {} } = {}) =>
             data.filter(({ id }) => {
-                // console.log('id === ', id);
                 return !isIdUsed(id)
             })
                 .forEach(({ id, name, date: stringDate }) => {
-                    // console.log('{ id, name, date: stringDate }', { id, name, stringDate });
                     setIdUsed(id);
                     let date = new Date(Date.parse(stringDate));
                     if (isWeekDay(date) && isPastDayFn(date)) {
-
-                        // console.log('setNameVisit(name); [' + id + ']', name);
                         setNameVisit(name);
                     }
                 })
         );
 
-    console.log('nameVisits', nameVisits);
+    // console.log('nameVisits', nameVisits);
 
     const namesSorted = Object.keys(nameVisits).sort();
 
-    console.log('namesSorted', namesSorted);
+    // console.log('namesSorted', namesSorted);
     const sortedVisits = namesSorted.map(
         name => ({
             name,
@@ -1259,41 +1136,32 @@ const calcVisits = (pageResponses, isPastDayFn) => {
 
 const validateResults = (fileReadDump, fileLogger, isPastDayFn, total) => {
 
-    let validateFirstPageResponse = JSON.parse(fileReadDump('firstPageResponse.json'));
-    let validateUnreadPagesResponses = JSON.parse(fileReadDump('unreadPagesResponses.json') || '[]');
+    const fileReadDumpSilent = file => fileReadDump(file, true);
+    let validateFirstPageResponse = JSON.parse(fileReadDumpSilent('firstPageResponse.json'));
+    let validateUnreadPagesResponses = JSON.parse(fileReadDumpSilent('unreadPagesResponses.json') || '[]');
 
-    let maxRecursiveGuardCount = parseInt(fileReadDump('recursiveGuardCount'), 10);
-    console.log("maxRecursiveGuardCount === ", maxRecursiveGuardCount);
+    let maxRecursiveGuardCount = parseInt(fileReadDumpSilent('recursiveGuardCount'), 10);
 
     if (isNaN(maxRecursiveGuardCount)) {
         maxRecursiveGuardCount = -1;
     }
-    console.log("VALID maxRecursiveGuardCount === ", maxRecursiveGuardCount);
 
     let possibleRecursiveIndexes = [];
     for (let i = maxRecursiveGuardCount; i >= 0; i--) {
         possibleRecursiveIndexes.push(i);
     }
-    console.log("let possibleRecursiveIndexes = []; possibleRecursiveIndexes === ", possibleRecursiveIndexes);
 
     const tailPagesFilenameFn = (recursionIndex) => `tailPagesResponses_r${recursionIndex}.json`;
     const missedPagesFilenameFn = (recursionIndex) => `missedPageResponses_r${recursionIndex}.json`;
 
     const recursiveValidateTailPagesResponses = possibleRecursiveIndexes.map(index =>
-      fileReadDump(tailPagesFilenameFn(index))).filter(fileContent => fileContent !== undefined);
+      fileReadDumpSilent(tailPagesFilenameFn(index))).filter(fileContent => fileContent !== undefined);
     const recursiveValidateMissedPagesResponses = possibleRecursiveIndexes.map(index =>
-      fileReadDump(missedPagesFilenameFn(index))).filter(fileContent => fileContent !== undefined);
+      fileReadDumpSilent(missedPagesFilenameFn(index))).filter(fileContent => fileContent !== undefined);
 
-    // fileLogger('xx_recursiveValidateTailPagesResponses.json', JSON.stringify(recursiveValidateTailPagesResponses, null, 4));
-    // fileLogger('xx_recursiveValidateMissedPagesResponses.json', JSON.stringify(recursiveValidateMissedPagesResponses, null, 4));
 
     let validateTailPagesResponses = recursiveValidateTailPagesResponses.map(JSON.parse).flat();
     let validateMissedPageResponses = recursiveValidateMissedPagesResponses.map(JSON.parse).flat();
-
-    // fileLogger('x_validateFirstPageResponse.json',  JSON.stringify(validateFirstPageResponse, null, 4));
-    // fileLogger('x_validateUnreadPagesResponses.json',  JSON.stringify(validateUnreadPagesResponses, null, 4));
-    // fileLogger('x_validateTailPagesResponses.json',  JSON.stringify(validateTailPagesResponses, null, 4));
-    // fileLogger('x_validateMissedPageResponses.json',  JSON.stringify(validateMissedPageResponses, null, 4));
 
     let all = [
         validateFirstPageResponse,
@@ -1302,8 +1170,10 @@ const validateResults = (fileReadDump, fileLogger, isPastDayFn, total) => {
         ...validateMissedPageResponses,
     ];
     fileLogger('validate_1_allResponses.json',  JSON.stringify(all, null, 4));
+
     let allRecsWithDuplicates = (all.map(i => i.value.data)).flat().sort((a, b) => a.id - b.id);
     fileLogger('validate_2_allRecordsWithDubs.json', JSON.stringify(allRecsWithDuplicates, null, 4));
+
     let allRecsSet = {};
     allRecsWithDuplicates.forEach(rec => allRecsSet[rec.id] = rec);
     Object.keys(allRecsSet).forEach(id =>
@@ -1355,7 +1225,6 @@ const listUsers = async () => {
 
     try {
 
-        // console.error('a1');
         const token = await fetchTokenFn();
         if (token === false) {
             console.error('Error: Auth request failed');
@@ -1371,8 +1240,10 @@ const listUsers = async () => {
         };
 
 
-        const fileReadDump = (label) => {
-            console.log("[fileReadDump] [checking] file: '" + label + "'");
+        const fileReadDump = (label, silent = false) => {
+            if (!silent) {
+                console.log("[fileReadDump] [checking] file: '" + label + "'");
+            }
             const prefix = IS_DEBUG_FROM_DUMP ?
               DUMP_FILE_PATH :
               dumpFilePathPrefixTemplate(startMoment);
@@ -1380,10 +1251,14 @@ const listUsers = async () => {
             const filePath = 'logs/' + prefix + label;
             let isFileExists = fs.existsSync(filePath);
             if (isFileExists) {
-                console.log("[fileReadDump] [loaded__] file: '" + label + "'");
+                if (!silent) {
+                    console.log("[fileReadDump] [loaded__] file: '" + label + "'");
+                }
                 return fs.readFileSync(filePath, 'utf8');
             } else {
-                console.log("[fileReadDump] [skipped_] file: '" + label + "'");
+                if (!silent) {
+                    console.log("[fileReadDump] [skipped_] file: '" + label + "'");
+                }
                 return undefined;
             }
         };
@@ -1411,7 +1286,7 @@ const listUsers = async () => {
             fileLogger('startMoment', startMoment);
         }
 
-        console.log('startMoment', startMoment);
+        // console.log('startMoment', startMoment);
         const startMomentUTCMilliseconds = startMoment.getTime();
         const startMomentUTCStartOfDateMilliseconds = getUTCStartOfDateMilliseconds(startMoment);
         const isPastDayFn = (date) => getUTCStartOfDateMilliseconds(date) < startMomentUTCStartOfDateMilliseconds;
@@ -1450,8 +1325,6 @@ const listUsers = async () => {
         
         console.log('unreadPageIds', unreadPageIds);
 
-        // const unreadPagesResponses = await pageIdListFetchFn(unreadPageIds);
-
         let unreadPagesResponses;
         if (IS_DEBUG_FROM_DUMP) {
             unreadPagesResponses = JSON.parse(fileReadDump('unreadPagesResponses.json') || '[]');
@@ -1460,21 +1333,12 @@ const listUsers = async () => {
             fileLogger('unreadPagesResponses.json', JSON.stringify(unreadPagesResponses, null, 4));
         }
 
-        // console.error('firstPageResponse a1 JSON STRINGIFY', JSON.stringify(firstPageResponse, null, 4) );
-        // console.error('firstPageResponse a1', (firstPageResponse) );
-        // console.error('unreadPagesResponses a1 JSON STRINGIFY', JSON.stringify(unreadPagesResponses, null, 4) );
-        // console.error('unreadPagesResponses a1', (unreadPagesResponses) );
-
-        let endMoment = new Date();
-
         let currentDateIsoString = startMoment.toISOString();
 
         console.log('currentDateIsoString', currentDateIsoString);
 
         const isDataChanged = isTotalChanged(total, unreadPagesResponses);
         console.log('isDataChanged', isDataChanged);
-
-        // let finalDataSet = [firstPageResponse, ...unreadPagesResponses];
 
         let pagesWithMissedRecordsResponses = [];
         if (isDataChanged) {
@@ -1495,7 +1359,7 @@ const listUsers = async () => {
             [firstPageResponse, ...unreadPagesResponses, ...pagesWithMissedRecordsResponses],
             isPastDayFn);
 
-        console.log('visits', visits);
+        // console.log('visits', visits);
         console.log(JSON.stringify(visits, null, 4));
 
         if (!IS_DEBUG_FROM_DUMP) {
@@ -1508,8 +1372,7 @@ const listUsers = async () => {
               ),
               JSON.stringify(visits, null, 4));
         }
-        console.log('isDataChanged', isDataChanged);
-
+        // console.log('isDataChanged', isDataChanged);
 
         try {
             validateResults(fileReadDump, fileLogger, isPastDayFn, total);

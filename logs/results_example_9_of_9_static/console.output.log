@@ -1,0 +1,47 @@
+token:  { token: '30031e3b1b2f84ad' }
+[fileReadDump] [checking] file: 'startMoment'
+[fileReadDump] [loaded__] file: 'startMoment'
+[fileReadDump] [checking] file: 'firstPageResponse.json'
+[fileReadDump] [loaded__] file: 'firstPageResponse.json'
+firstPageRecordsCount  9
+typeof firstPageRecordsCount  number
+total 9
+unreadPageIds []
+[fileReadDump] [checking] file: 'unreadPagesResponses.json'
+[fileReadDump] [loaded__] file: 'unreadPagesResponses.json'
+currentDateIsoString 2020-07-10T05:03:56.000Z
+isDataChanged false
+[
+    {
+        "name": "Visitor #0",
+        "count": 1
+    },
+    {
+        "name": "Visitor #1",
+        "count": 1
+    },
+    {
+        "name": "Visitor #2",
+        "count": 1
+    },
+    {
+        "name": "Visitor #3",
+        "count": 1
+    },
+    {
+        "name": "Visitor #5",
+        "count": 1
+    },
+    {
+        "name": "Visitor #6",
+        "count": 1
+    },
+    {
+        "name": "Visitor #7",
+        "count": 1
+    },
+    {
+        "name": "Visitor #8",
+        "count": 1
+    }
+]
